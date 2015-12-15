@@ -27,8 +27,8 @@ If BackgroundFunction.InArray("Modus", Sheets("Basisgeg.").Range("O1").Value) = 
     End If
 
     For i = 1 To Sheets.count
-        If Sheets(i).Name <> Sht Then
-            Sheets(i).Visible = xlSheetHidden
+        If Sheets(i).Visible = xlSheetVisible Then
+            If Sheets(i).Name <> Sht Then Sheets(i).Visible = xlSheetHidden
         End If
     Next i
 Else
@@ -157,7 +157,7 @@ Error.DebugTekst Tekst:="Start DeActivateWorkModus"
 
 For i = 1 To Sheets.count
     Admin.Bewerkbaar (Sheets(i).Name)
-    
+10
     With ActiveWindow
         .DisplayGridlines = True 'Rasterlijnen
         .DisplayHeadings = True 'Kolom en rij koppen
@@ -165,20 +165,20 @@ For i = 1 To Sheets.count
         .DisplayHorizontalScrollBar = True
         .DisplayVerticalScrollBar = True
     End With
-    
+20
     With Sheets(Sheets(i).Name)
         .ScrollArea = ""
         .Cells.EntireColumn.Hidden = False
         .Cells.EntireRow.Hidden = False
     End With
 Next i
-
+30
 With Application
     .DisplayFormulaBar = True
     .DisplayFullScreen = False 'Volledig scherm
     .DisplayFormulaBar = True
 End With
-
+40
 Beveiliging = MsgBox("Schrijfbeveiliging op de bladen aan zetten?", vbYesNo, "Schrijfbeveiliging?")
 If Beveiliging = vbYes Then
     Admin.ShowOneSheet ("Basisgeg.")
@@ -187,6 +187,7 @@ If Beveiliging = vbYes Then
     For i = 1 To Sheets.count
         Admin.NietBewerkbaar (Sheets(i).Name)
     Next i
+45
 Else
     Admin.ShowOneSheet ("Basisgeg.")
     Sheets("Basisgeg.").Range("O1").Value = "Test modus"
@@ -224,7 +225,6 @@ Error.DebugTekst Tekst:="Start input: " & vbNewLine _
                         & "Sht: " & Sht, _
                         FunctionName:=SubName
 '----Start
-
 1 ThisSheet = ActiveSheet.Name
 2 Admin.ShowOneSheet (Sht)
 3 ActiveSheet.Unprotect Password:=PassWordChanger()
@@ -236,7 +236,12 @@ Error.DebugTekst ("Sheet: " & Sht & " > Bewerkbaar = " & Bewerkbaar)
 Exit Function
 
 ErrorText:
-If Err.Number <> 0 Then SeeText (SubName)
+If Err.Number <> 1004 Then 'Check if the failure is a wrong password
+    If Err.Number <> 0 Then SeeText (SubName)
+Else
+    MsgBox "Wrong password error"
+    End
+End If
 Resume Next
     
 End Function
@@ -314,6 +319,9 @@ If Sheets("Basisgeg.").Range("O5").Value > 100 Then
     Admin.NietBewerkbaar ("Basisgeg.")
 End If
 
+SaveVBA = MsgBox("VBA opslaan en versie bijwerken?", vbYesNo, "Save VBA?")
+If SaveVBA = vbYes Then Admin.ExportVisualBasicCode
+
 With ThisWorkbook
     .Save
 End With
@@ -348,17 +356,17 @@ Error.DebugTekst Tekst:="Start", FunctionName:=SubName
     Dim directory As String
     Dim extension As String
     Dim fso As Object
-    
+10
     'dirStart = ActiveWorkbook.path
     dirStart = "C:\Users\Gebruiker\Documents\GitHub\ZwerfBoekExcel" 'starting directory
-    directory = "\" 'new directories for the vba-scripts
+    directory = "" 'new directories for the vba-scripts
     fName = "boekhoud-v1-2.xlsm" 'this filename
     'path = dirStart & directory
-    
+20
     Set fso = CreateObject("scripting.filesystemobject")
     count = 0
     skiped = 0
-    
+30
     If Not fso.FolderExists(dirStart & directory) Then
         'when directory does not exists, make path
         newDir = dirStart
@@ -373,10 +381,11 @@ Error.DebugTekst Tekst:="Start", FunctionName:=SubName
             End If
         Next
     End If
+40
     Set fso = Nothing
     'Check if the right workbook is active
     If ActiveWorkbook.Name <> fName Then Workbooks(fName).Activate
-    
+50
     For Each VBComponent In ActiveWorkbook.VBProject.VBComponents
         Select Case VBComponent.Type
             Case ClassModule, Document
@@ -392,14 +401,14 @@ Error.DebugTekst Tekst:="Start", FunctionName:=SubName
                 
         On Error Resume Next
         Err.Clear
-        
+60
         Bladcheck = InStr(VBComponent.Name, "Blad")
         If Bladcheck > 0 Then
             Error.DebugTekst ("Skiped: " & VBComponent.Name)
             skiped = skiped + 1
             GoTo Volgende
         End If
-        
+70
         If count = 0 Then directory = dirStart & directory
         path = directory & "\" & VBComponent.Name & extension
         VBComponent.Export (path)
@@ -413,6 +422,7 @@ Error.DebugTekst Tekst:="Start", FunctionName:=SubName
                         Title:="Failed to export"
                         
             End If
+75
         Else
             count = count + 1
             Debug.Print "Exported " & Left$(VBComponent.Name & ":" & Space(Padding), Padding) & path
@@ -421,7 +431,7 @@ Error.DebugTekst Tekst:="Start", FunctionName:=SubName
 Volgende:
         On Error GoTo ErrorText
     Next
-    
+80
     Application.StatusBar = "Successfully exported: " & CStr(count) & " files | Skiped: " & CStr(skiped) & " files"
     Error.DebugTekst Tekst:="Successfully exported: " & CStr(count) & " files | Skiped: " & CStr(skiped) & " files", _
                         FunctionName:=SubName

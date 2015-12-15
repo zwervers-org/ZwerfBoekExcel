@@ -206,7 +206,7 @@ End With
 GetFolderOut = sItem
 
 'Pad opslaan voor later gebruik?
-SavePath = MsgBox("Pad opslaan voor later gebruik?", vbYesNo, "Pad opslaan?")
+SavePath = MsgBox("De geselecteerde map opslaan voor later gebruik?", vbYesNo, "Map opslaan?")
 
 With Sheets("Basisgeg.")
     If SavePath = 6 Then
@@ -347,7 +347,9 @@ If TypeName(ActiveSheet) <> "Worksheet" Then Exit Function
 
 If ActiveSheet.Name <> TargetSheet.Name Then Exit Function
 
-If Left(PictureFileName, 1) = "\" Then PictureFileName = Application.ActiveWorkbook.path & PictureFileName
+FolderSep = BackgroundFunction.FolderSeparator(PictureFileName)
+
+If Left(PictureFileName, 1) = FolderSep Then PictureFileName = Application.ActiveWorkbook.path & PictureFileName
 If Dir(PictureFileName) = "" Then Exit Function
 Error.DebugTekst "PictureFileName = " & PictureFileName
 10
@@ -564,8 +566,10 @@ Error.DebugTekst Tekst:="Start input: " & vbNewLine _
 '----Start
 Dim TestStr As String
 
-If Right(FolderPath, 1) <> "\" Then FolderPath = FolderPath & "\"
-If Left(FolderPath, 1) = "\" Then FolderPath = Application.ActiveWorkbook.path & FolderPath
+FolderSep = BackgroundFunction.FolderSeparator(FolderPath)
+
+If Right(FolderPath, 1) <> FolderSep Then FolderPath = FolderPath & FolderSep
+If Left(FolderPath, 1) = FolderSep Then FolderPath = Application.ActiveWorkbook.path & FolderPath 'file staat base folder
 
 Error.DebugTekst ("After changes folderpath= " & FolderPath)
 
@@ -591,4 +595,17 @@ Exit Function
 ErrorText:
 If Err.Number <> 0 Then SeeText (SubName)
  Resume Next
+End Function
+
+Function FolderSeparator(FolderCheck) As String
+
+'Check of het om een netwerkmap gaat of een hdd map
+If InStr(PictureFileName, "\") > 0 Then
+    FolderSeparator = "\"
+ElseIf InStr(PictureFileName, "\") > 0 Then
+    FolderSeparator = "/"
+Else
+    FolderSeparator = ""
+End If
+
 End Function

@@ -78,6 +78,7 @@ If BackgroundFunction.FactuurCheck(FactuurNr) = False Then
        
         GaNaar.bekijkfactuur
         
+        
         InvoiceGood = MsgBox("Is het factuur goed?", vbYesNo, "Factuur goed?")
         
         If InvoiceGood = vbNo Then
@@ -96,11 +97,14 @@ PathNow = Application.ActiveWorkbook.path
 'Kijken of er al een pad is opgeslagen om op te slaan.
 If IsEmpty(Sheets("Basisgeg.").Range("C25")) Then
     FilePath = BackgroundFunction.GetFolder(PathNow, "PDF")
+    FolderSep = BackgroundFunction.FolderSeparator(FilePath)
 Else
     FilePath = Sheets("Basisgeg.").Range("C25").Value
     If BackgroundFunction.TestFolderExist(FilePath) = False Then FilePath = BackgroundFunction.GetFolder(PathNow, "PDF")
     
-    If Left(FilePath, 1) = "\" Then FilePath = PathNow & FilePath
+    FolderSep = BackgroundFunction.FolderSeparator(FilePath)
+    
+    If Left(FilePath, 1) = FolderSep Then FilePath = PathNow & FilePath
 End If
 
 'Vind achternaam voor de PDF bestandsnaam
@@ -132,14 +136,14 @@ With Sheets("Factuur")
     ChDir (FilePath)
         
     ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, FileName:= _
-        FilePath & "\" & FileName & ".pdf" _
+        FilePath & FolderSep & FileName & ".pdf" _
         , Quality:=xlQualityStandard, IncludeDocProperties:=True, IgnorePrintAreas _
         :=False, OpenAfterPublish:=False
     
     .Range("B1").Select
 End With
 
-SavePDF = FilePath & "\" & FileName & ".pdf"
+SavePDF = FilePath & FolderSep & FileName & ".pdf"
 
 Error.DebugTekst Tekst:="Finish", FunctionName:=SubName
 
@@ -173,12 +177,16 @@ Dim FileSort As String
 'Selecteer opslag locatie en laat deze opslaan
 PathNow = Application.ActiveWorkbook.path
 
+FolderSep = BackgroundFunction.FolderSeparator(FilePath)
+
 'Kijken of er al een pad is opgeslagen om op te slaan.
 If IsEmpty(Sheets("Basisgeg.").Range("C24")) Then
     FilePath = BackgroundFunction.GetFolder(PathNow, "Backup")
+    FolderSep = BackgroundFunction.FolderSeparator(FilePath)
 Else
     FilePath = Sheets("Basisgeg.").Range("C24").Value
-    If Left(FilePath, 1) = "\" Then FilePath = PathNow & FilePath
+    FolderSep = BackgroundFunction.FolderSeparator(FilePath)
+    If Left(FilePath, 1) = FolderSep Then FilePath = PathNow & FilePath
     If BackgroundFunction.TestFolderExist(FilePath) = False Then BackgroundFunction.GetFolder PathNow, "PDF"
 End If
 
@@ -186,7 +194,7 @@ If FilePath = "" Then End 'wanneer er geen pad is geselecteerd
 
 DateNow = Format(Now, "ddMMMyyyy-hhmm")
 
-If Right(FilePath, 1) <> "\" Then FilePath = FilePath & "\"
+If Right(FilePath, 1) <> FolderSep Then FilePath = FilePath & FolderSep
 
 ActiveWorkbook.SaveCopyAs (FilePath & DateNow & "-backup.xlsm")
 
@@ -200,7 +208,7 @@ Admin.NietBewerkbaar ("Basisgeg.")
 
 If ActiveSht <> "Basisgeg." Then Admin.ShowOneSheet (ActiveSht)
 
-If BackgroundFunction.IsFile(FilePath & "\" & DateNow & "-backup.xlsm") Then
+If BackgroundFunction.IsFile(FilePath & FolderSep & DateNow & "-backup.xlsm") Then
     Error.DebugTekst ("Backup successfull")
 Else
     Error.DebugTekst ("NO BACKUP MADE")

@@ -2,7 +2,7 @@ Attribute VB_Name = "Error"
 Function LogFileName() As String
 
 TempFolder = Environ("Temp")
-ErrorFile = "ErrorLog-Boekhoud-v1-1_" & Format(Now(), "ddmmyy") & ".txt"
+ErrorFile = "ErrorLog-Boekhoud-v1-2_" & Format(Now(), "ddmmyy") & ".txt"
 LogFileNameOut = TempFolder & "\" & ErrorFile
 
 'Debug.Print "----" & vbNewLine & "LogFileName: " & LogFileNameOut & vbNewLine & "----"

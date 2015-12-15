@@ -49,7 +49,7 @@ Sub bekijkfactuur()
     Admin.ShowOneSheet ("Factuur")
     Sheets("Factuur").Range("B1").Select
     
-    'Application.ScreenUpdating = View("Updte")
+    Application.ScreenUpdating = View("Updte")
     
 End Sub
 
@@ -64,6 +64,14 @@ End Sub
 Sub NaarFactuurInvoer()
     
     ThisSheet = ActiveSheet.Name
+    If ThisSheet = "Debiteuren" Or "Artikelen" Then
+        'Check of er nog vreemde input staat en die opruimen
+        If NieuweInput.CheckNwInput(ActiveSheet.Name) = False Then
+            MsgBox "Problem with CheckNwInput, system has to end"
+            Admin.ShowOneSheet ("Factuur invoer")
+            Exit Sub
+        End If
+    End If
     Admin.NietBewerkbaar (ThisSheet)
     
     Admin.ShowOneSheet ("Factuur invoer")

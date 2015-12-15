@@ -18,6 +18,13 @@ If Admin.Bewerkbaar("Debiteuren") = False Then GoTo EindSub
 
 2 Admin.ShowOneSheet ("Debiteuren")
 
+'Check of er nog vreemde input staat en die opruimen
+If NieuweInput.CheckNwInput(ActiveSheet.Name) = False Then
+    MsgBox "Problem with CheckNwInput, system has to end"
+    Admin.ShowOneSheet ("Factuur invoer")
+    Exit Sub
+End If
+
 With Sheets("Debiteuren")
 3 'nieuwe invoer onderaan de pagina toevoegen
     Einde1 = .Range("C2").End(xlDown).Row
@@ -178,7 +185,14 @@ If Admin.Bewerkbaar("Artikelen") = False Then GoTo EindSub
     NieuweArt = Sheets("Factuur invoer").Range("O20")
 
 2   Admin.ShowOneSheet ("Artikelen")
-    
+
+'Check of er nog vreemde input staat en die opruimen
+If NieuweInput.CheckNwInput(ActiveSheet.Name) = False Then
+    MsgBox "Problem with CheckNwInput, system has to end"
+    Admin.ShowOneSheet ("Factuur invoer")
+    Exit Sub
+End If
+
 With Sheets("Artikelen")
 3 'nieuwe invoer onderaan de pagina toevoegen
     Einde1 = .Range("C2").End(xlDown).Row
