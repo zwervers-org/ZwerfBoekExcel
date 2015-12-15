@@ -1,7 +1,16 @@
 Attribute VB_Name = "Afdrukken"
 Sub Printfactuur()
 
-'Krijg de factuurnummer
+SubName = "'PrintFactuur'"
+If View("Errr") = True Then On Error GoTo ErrorText:
+
+Application.ScreenUpdating = View("Updte")
+Application.DisplayAlerts = View("Alrt")
+
+Error.DebugTekst Tekst:="Start", FunctionName:=SubName
+'----Start
+
+'Krijg het factuurnummer
 FactuurNummer = Sheets("Factuur").Range("H17").Value
 
 'check of de factuur al verwerkt is anders eerst verwerken
@@ -9,36 +18,57 @@ If BackgroundFunction.FactuurCheck(FactuurNummer) = False Then
     If FactuurNummer = "" Or IsEmpty(FactuurNummer) Then
         MsgBox "Er is geen factuurnummer die gebruikt kan worden"
     Else
+        SaveFactuur = True
         Verwerken.FactuurVerwerken
+        OpslaanBackup.PDFOpslaan
+    End If
+End If
+
+If SaveFactuur = False Then
+        'Kijken of er ook een voorbeeld moet worden weergegeven voor het opslaan
+    If BackgroundFunction.InArray("CheckSave", Sheets("Basisgeg.").Range("C20").Value, _
+                                    ArrayList:=Array("Altijd", "Printen", "Printen|Opslaan", "Printen|Verwerken")) Then
+        ActiveSh = ActiveSheet.Name
+        Admin.ShowOneSheet ("Factuur")
+        InvoiceGood = MsgBox("Is het factuur goed?", vbYesNo, "Factuur goed?")
+        
+        If InvoiceGood = vbNo Then
+            Admin.ShowOneSheet (ActiveSh)
+            Exit Sub
+        End If
     End If
 End If
     
-    'Kijken of er ook een voorbeeld moet worden weergegeven voor het opslaan
-If BackgroundFunction.InArray("CheckSave", Sheets("Basisgeg.").Range("C20").Value, _
-                                ArrayList:=Array("Altijd", "Printen", "Printen|Opslaan", "Printen|Verwerken")) Then
-    ActiveSh = ActiveSheet.Name
-    Sheets("Factuur").Select
-    InvoiceGood = MsgBox("Is het factuur goed?", vbYesNo, "Factuur goed?")
-    
-    If InvoiceGood = vbNo Then
-        Sheets(ActiveSh).Select
-        Exit Sub
-    End If
-End If
-    
-    Sheets("Factuur").Select
+    Admin.ShowOneSheet ("Factuur")
     ActiveWindow.SelectedSheets.PrintOut copies:=1, collate:=True
-    Sheets("Factuur invoer").Select
+    Admin.ShowOneSheet (ActiveSh)
+   
+'---Finish
+Error.DebugTekst Tekst:="Finish", FunctionName:=SubName
+    
+Exit Sub
+ErrorText:
+If Err.Number <> 0 Then SeeText (SubName)
+ Resume Next
 End Sub
 
 Sub OverzichtAfdrukken()
+
+SubName = "'OverzichtAfdrukken'"
+If View("Errr") = True Then On Error GoTo ErrorText:
+
+Application.ScreenUpdating = View("Updte")
+Application.DisplayAlerts = View("Alrt")
+
+Error.DebugTekst Tekst:="Start", FunctionName:=SubName
+'----Start
 
 Dim AantalAfdrukken As Double
 
 TypeOverzicht = ActiveSheet.Name
 
 If Sheets(TypeOverzicht).PageSetup.RightHeader = "&G" Then 'check of het bedrijfslogo bovenaan de pagina staat
-    If Sheets(TypeOverzicht).PageSetup.RightHeaderPicture.Filename <> Sheets("Basisgeg.").Range("C26").Value Then _
+    If Sheets(TypeOverzicht).PageSetup.RightHeaderPicture.FileName <> Sheets("Basisgeg.").Range("C26").Value Then _
         Sheets(TypeOverzicht).PageSetup.RightHeader = ""
 End If
 
@@ -50,7 +80,7 @@ If Sheets(TypeOverzicht).PageSetup.RightHeader <> "&G" Then 'check of er een afb
     With Sheets(TypeOverzicht).PageSetup
         .LeftHeader = ""
         .CenterHeader = ""
-        .RightHeaderPicture.Filename = Sheets("Basisgeg.").Range("C26").Value
+        .RightHeaderPicture.FileName = Application.ActiveWorkbook.path & "\" & Sheets("Basisgeg.").Range("C26").Value
         .RightHeader = "&G"
         .LeftFooter = ""
         .CenterFooter = "Afgedrukt op: &D | &T"
@@ -99,7 +129,7 @@ Select Case TypeOverzicht
         Sheets(TypeOverzicht).PageSetup.PrintArea = "$B$2:$L$27"
         
     Case "Kwartaaloverzicht"
-        Sheets(TypeOverzicht).PageSetup.PrintArea = "$B$2:$L$18"
+        Sheets(TypeOverzicht).PageSetup.PrintArea = "$B$2:$L$23"
         Inputfield = "D9"
         
     Case "Maandoverzicht"
@@ -108,7 +138,25 @@ Select Case TypeOverzicht
     
     Case "Afdruk boekingen"
         LaatsteRij = Range("A22").End(xlDown).Row
-        Sheets(TypeOverzicht).PageSetup.PrintArea = "$A$1:$N$" & LaatsteRij
+        Sheets(TypeOverzicht).PageSetup.PrintArea = "$A$22:$N$" & LaatsteRij
+        With Sheets(TypeOverzicht).PageSetup
+            .Orientation = xlLandscape
+            .FitToPagesTall = False
+        End With
+    
+    Case "Boekingslijst"
+        LaatsteRij = Range("F4").End(xlDown).Row
+        Sheets(TypeOverzicht).PageSetup.PrintArea = "$B$1:$P$" & LaatsteRij
+        With Sheets(TypeOverzicht).PageSetup
+            .LeftMargin = Application.InchesToPoints(0.25)
+            .RightMargin = Application.InchesToPoints(0.25)
+            .TopMargin = Application.InchesToPoints(1.18)
+            .BottomMargin = Application.InchesToPoints(0.39)
+            .HeaderMargin = Application.InchesToPoints(0.12)
+            .FooterMargin = Application.InchesToPoints(0.12)
+            .Orientation = xlLandscape
+            .FitToPagesTall = False
+        End With
     
     Case Else
         MsgBox "Er zijn geen instellingen voor dit overzicht, het afdruk bereik wordt in een voorbeeld weergegeven."
@@ -117,6 +165,7 @@ End Select
 
 If Not IsEmpty(Inputfield) Then
     'Invulvakje verbergen
+    Admin.Bewerkbaar (TypeOverzicht)
     With Range(Inputfield)
         .Interior.Pattern = xlSolid
         .Interior.PatternColorIndex = xlAutomatic
@@ -127,6 +176,7 @@ If Not IsEmpty(Inputfield) Then
         .Font.ThemeColor = xlThemeColorDark1
         .Font.TintAndShade = 0
     End With
+    Admin.NietBewerkbaar (TypeOverzicht)
 End If
 
 'Aantal afdrukken op laten geven
@@ -140,10 +190,12 @@ AantalAfdrukken = Application.InputBox(Prompt:="Hoeveel afdrukken zijn er nodig?
 
     If MoreTen = vbNo Then Exit Sub
 
+Sheets(TypeOverzicht).PrintPreview (True)
 Sheets(TypeOverzicht).PrintOut copies:=AantalAfdrukken, collate:=True, IgnorePrintAreas:=False
 
 If Not IsEmpty(Inputfield) Then
     'Invulvakje zichtbaar maken
+    Admin.Bewerkbaar (TypeOverzicht)
     With Range(Inputfield)
         .Interior.Pattern = xlSolid
         .Interior.PatternColorIndex = xlAutomatic
@@ -154,7 +206,17 @@ If Not IsEmpty(Inputfield) Then
         .Font.ThemeColor = xlThemeColorLight1
         .Font.TintAndShade = 0
     End With
+    Admin.NietBewerkbaar (TypeOverzicht)
 End If
+
+'---Finish
+Error.DebugTekst Tekst:="Finish", FunctionName:=SubName
+
+Exit Sub
+
+ErrorText:
+If Err.Number <> 0 Then SeeText (SubName)
+ Resume Next
 End Sub
 
 

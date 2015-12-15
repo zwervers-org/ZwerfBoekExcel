@@ -22,10 +22,10 @@ Sub GaNaarArtikelen()
     Range("C4").Select
     
     Admin.Bewerkbaar (Sht)
-    Sheets(Sht).ShowDataForm
-    Admin.NietBewerkbaar (Sht)
+    'Sheets(Sht).ShowDataForm
+    'Admin.NietBewerkbaar (Sht)
     
-    Admin.ShowOneSheet ("Factuur invoer")
+    'Admin.ShowOneSheet ("Factuur invoer")
 End Sub
 
 Sub GaNaarDebiteuren()
@@ -35,16 +35,22 @@ Sub GaNaarDebiteuren()
     Admin.ShowOneSheet (Sht)
     Range("C4").Select
     
-    Admin.Bewerkbaar (Sht)
-    Sheets(Sht).ShowDataForm
-    Admin.NietBewerkbaar (Sht)
+    'Admin.Bewerkbaar (Sht)
+    'Sheets(Sht).ShowDataForm
+    'Admin.NietBewerkbaar (Sht)
     
-    Admin.ShowOneSheet ("Factuur invoer")
+    'Admin.ShowOneSheet ("Factuur invoer")
 End Sub
 
 Sub bekijkfactuur()
-
+    
+    Application.ScreenUpdating = True
+    
     Admin.ShowOneSheet ("Factuur")
+    Sheets("Factuur").Range("B1").Select
+    
+    'Application.ScreenUpdating = View("Updte")
+    
 End Sub
 
 Sub Naarboeken()
@@ -56,8 +62,11 @@ Sub Naarboeken()
 End Sub
 
 Sub NaarFactuurInvoer()
-
-     Admin.ShowOneSheet ("Factuur invoer")
+    
+    ThisSheet = ActiveSheet.Name
+    Admin.NietBewerkbaar (ThisSheet)
+    
+    Admin.ShowOneSheet ("Factuur invoer")
     
 End Sub
 

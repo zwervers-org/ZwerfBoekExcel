@@ -26,7 +26,7 @@ End Sub
 
 Private Sub Workbook_Activate()
     
-    Admin.ActivateWorkModus
+    If Sheets("Basisgeg.").Range("O1").Value <> "Work modus" Then Admin.ActivateWorkModus
     
     If Sheets("Basisgeg.").Range("A2").Value = "" Then Admin.ShowOneSheet ("Basisgeg.")
     

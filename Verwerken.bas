@@ -4,12 +4,13 @@ Attribute FactuurVerwerken.VB_Description = "De macro is opgenomen op 25-8-2005 
 Attribute FactuurVerwerken.VB_ProcData.VB_Invoke_Func = " \n14"
 
 SubName = "'FactuurVerwerken'"
-If View("Errr") = True Then
-    On Error GoTo ErrorText:
-End If
-
+If View("Errr") = True Then On Error GoTo ErrorText:
 Application.ScreenUpdating = View("Updte")
 Application.DisplayAlerts = View("Alrt")
+
+Error.DebugTekst Tekst:="Start", _
+                        FunctionName:=SubName
+'----Start
 
 Admin.ShowAllSheets
 
@@ -17,25 +18,25 @@ HuidigScherm = ActiveSheet.Name
 
 If Range("G24").Value = "Blok" Then
     MsgBox ("Deze factuur is al verwerkt")
-    End
+    Exit Sub
 End If
 
 'Kijken of er ook een voorbeeld moet worden weergegeven voor het opslaan
 If BackgroundFunction.InArray("CheckSave", Sheets("Basisgeg.").Range("C20").Value, _
                                 ArrayList:=Array("Altijd", "Verwerken", "Printen|Verwerken", "Verwerken|Opslaan")) Then
     ActiveSh = ActiveSheet.Name
-    Application.ScreenUpdating = True
     
-    Sheets("Factuur").Select
+    GaNaar.bekijkfactuur
+    
     InvoiceGood = MsgBox("Is het factuur goed?", vbYesNo, "Factuur goed?")
-    
-    Application.ScreenUpdating = View("Updte")
+
     If InvoiceGood = vbNo Then
-        Sheets(ActiveSh).Select
+        Admin.ShowOneSheet (ActiveSh)
         End
     End If
 End If
 
+FactuurNr = Sheets("Factuur invoer").Range("H2").Value
 Admin.Bewerkbaar ("Factuurlijst")
     FactuurlijstUitvoeren = Verwerken.Factuurlijst 'uitvoeren van de factuurboeking in het factuur archief
 Admin.NietBewerkbaar ("Factuurlijst")
@@ -47,73 +48,85 @@ If FactuurlijstUitvoeren = True Then 'checken of het boekingsproces correct is a
     
     If BoekingslijstUivoeren = True Then 'checken of het boekingsproces correct is afgesloten
         'verwerken is voltooid
-        VervolgActie = MsgBox(Prompt:="De factuur is verwerkt!" _
-                        & vbNewLine & vbNewLine & "Is het nog nodig om nog een actie uit te voeren?" _
-                        & vbNewLine & "Bijvoorbeeld: Verzenden als PDF, Emailen, Afdrukken?" _
-                        & vbNewLine & vbNewLine & vbNewLine & "!!!! HET IS HIERNA NIET MEER MOGELIJK OM DIT TE DOEN !!!!", _
-                        Buttons:=vbYesNo, Title:="Factuur verwerkt!")
         
-        If VervolgActie = vbNo Then
-            LeegMaken.FactuurInvoerLeeg 'Factuurinvoer leegmaken
-        Else 'Factuurinvoer voor wijzigingen beveiligen, alleen de knoppen zijn nog te gebruiken
-            Admin.Bewerkbaar ("Factuur invoer")
+        'Factuurinvoer op slot zetten
+        Admin.Bewerkbaar ("Factuur invoer")
+        
+        With Sheets("Factuur invoer")
+            .EnableSelection = xlNoSelection
+            .Range("V1").Locked = True 'Blokkeren dat klant veranderd kan worden
+            .Range("G24").Value = "Blok"  'Knop /verwerken\ blokkeren
+            .Range("H2").Value = FactuurNr
+        End With
+        
+        Admin.NietBewerkbaar ("Factuur invoer")
+        
+        'PDF opslaan
+        PDFAdres = Sheets("Basisgeg.").Range("C25").Value
+        
+        If PDFAdres = "" Then PDFAdres = "--Geen pad ingesteld--"
+        QPDFOpslaan = MsgBox(Prompt:="De factuur is verwerkt." _
+                        & vbNewLine & vbNewLine & "Wilt u dit factuur ook opslaan als PDF?" _
+                        & vbNewLine & "PDF wordt opgeslagen in: " _
+                        & vbNewLine & PDFAdres, _
+                        Buttons:=vbYesNo, Title:="Opslaan als PDF?")
+                
+        QPDFOpslaan = vbYes 'Bypass om de vraag te omzeilen
+        
+        If QPDFOpslaan = vbYes Then OpslaanBackup.SavePDF (True)
             
-            With Sheets("Factuur invoer")
-                .EnableSelection = xlNoSelection
-                .Range("D2").Locked = True 'Blokkeren dat klant veranderd kan worden
-                .Range("G24").Value = "Blok"  'Knop /verwerken\ blokkeren
-            End With
-            
-            Admin.NietBewerkbaar ("Factuur invoer")
-            
-            MsgBox "De factuur invoer is beveiligd tegen bewerking! Het is alleen nog mogelijk om de knoppen te gebruiken" _
-                    & vbNewLine & vbNewLine & "Wanneer je een nieuw factuur wil beginnen klik dan op de knop 'OVERNIEUW'."
-        End If
+        MsgBox "De factuur invoer is beveiligd tegen bewerking! Het is alleen nog mogelijk om de knoppen te gebruiken" _
+                & vbNewLine & vbNewLine & "Wanneer je een nieuw factuur wil beginnen klik dan op de knop 'OVERNIEUW'."
 
     Else
         MsgBox "Er is iets fout gegaan bij het verwerken van het factuur in de boekingslijst" & vbNewLine _
             & "de foutcode is: " & BoekingslijstUivoeren & vbNewLine & vbNewLine _
-            & "Neem contact op met de software programeur: " & Sheets("Basisgeg.").Range("H26")
+            & "Neem contact op met de software programeur: " & Sheets("Basisgeg.").Range("H26") & vbNewLine & vbNewLine _
+            & "DOE GEEN VERDERE ACTIES MEER, DIT KAN ERVOOR ZORGEN DAT ER FOUTEN ONTSTAAN IN DE ADMINISTRATIE"
     End If
 Else
     MsgBox "Er is iets fout gegaan bij het verwerken van het factuur in het factuurarchief" & vbNewLine _
         & "de foutcode is: " & FactuurlijstUitvoeren & vbNewLine & vbNewLine _
-        & "Neem contact op met de software programeur: " & Sheets("Basisgeg.").Range("H26")
+        & "Neem contact op met de software programeur: " & Sheets("Basisgeg.").Range("H26") & vbNewLine & vbNewLine _
+        & "DOE GEEN VERDERE ACTIES MEER, DIT KAN ERVOOR ZORGEN DAT ER FOUTEN ONTSTAAN IN DE ADMINISTRATIE"
 End If
 
 Admin.ShowOneSheet (HuidigScherm)
 
+ '--------End Function
+Error.DebugTekst Tekst:="Finish", FunctionName:=SubName
 Exit Sub
 
 ErrorText:
-If Err.Number <> 0 Then
-    SeeText (SubName)
-    End If
-    Resume Next
+If Err.Number <> 0 Then SeeText (SubName)
+Resume Next
 
 End Sub
 
-Function Factuurlijst() As String
+Private Function Factuurlijst() As String
 
 SubName = "'Factuurlijst'"
-If View("Errr") = True Then
-    On Error GoTo ErrorText:
-End If
-
-
+If View("Errr") = True Then On Error GoTo ErrorText:
 Application.ScreenUpdating = View("Updte")
 Application.DisplayAlerts = View("Alrt")
+
+Error.DebugTekst Tekst:="Start", _
+                        FunctionName:=SubName
 
 '------------------Verwerken van facturen in de factuurlijst
 
 'Controleer factuurnr berekening
-1    Sheets("Factuur invoer").Select
-    FactuurNummer = Range("H2").Value
-    Range("H2:H3").Copy
+1    Admin.ShowOneSheet ("Factuur invoer")
+    Admin.Bewerkbaar ("Factuur invoer")
+    With Sheets("Factuur invoer")
+        FactuurNummer = .Range("H2").Value
+        Volgnummer = .Range("V9").Value
+    End With
     
-2    Sheets("Factuurlijst").Select
+2    Admin.ShowOneSheet ("Factuurlijst")
     LaatsteRij = Range("A1").End(xlDown).Row
     
+    Sheets("Factuur invoer").Range("H2:H3").Copy
     With Sheets("Factuurlijst")
 3    If .Range("A" & LaatsteRij).Value = -1 Then
 4        .Range("B" & LaatsteRij).PasteSpecial Paste:=xlValues, Operation:=xlNone, SkipBlanks:= _
@@ -135,17 +148,16 @@ Application.DisplayAlerts = View("Alrt")
         'Maak nieuwe regel aan in Factuurlijst
 8           .Rows("2:2").Insert Shift:=xlDown 'Maak een nieuwe regel aan
             
-            Sheets("Factuur invoer").Select
-            Range("T1:T80").Copy 'Kopiëer alle data
+            Sheets("Factuur invoer").Range("T1:T80").Copy 'Kopiëer alle data
                         
-            Sheets("Factuurlijst").Select
             .Range("C2").PasteSpecial Paste:=xlValues, Operation:=xlNone, SkipBlanks:= _
                 False, Transpose:=True 'Plak alle data in de nieuwe rij
             .Range("B2").Value = FactuurNummer 'factuurnummer vastzetten
-            .Range("A2").Value = Range("A3").Value + 1 'volgnr berekenen
-            
+
+            .Range("A2").Value = .Range("A3").Value + 1 'Factuurteller verhogen in kolom A
+                        
             'opmaak netjes maken
-9            With Rows("2:2")
+90            With Rows("2:2")
                 .Font.Bold = False
                 .HorizontalAlignment = xlCenter
                 .VerticalAlignment = xlBottom
@@ -157,7 +169,35 @@ Application.DisplayAlerts = View("Alrt")
                 .ReadingOrder = xlContext
                 .MergeCells = False
             End With
-            '---
+91
+            'Maand factuur teller ophogen
+            MaandCounterStart = .Range("G14000").End(xlUp).Row - 13 'zoek de maand teller rij en pak de eerste maand
+            MaandNr = Month(.Range("C2").Value)
+            With Sheets("Factuurlijst").Columns(7) 'beginnen in kolom 2 en sla de titelrij over
+                Set MaandVinden = .Find(What:=MaandNr, _
+                                After:=.Cells(MaandCounterStart), _
+                                LookIn:=xlValues, _
+                                LookAt:=xlWhole, _
+                                SearchOrder:=xlByRows, _
+                                SearchDirection:=xlNext, _
+                                MatchCase:=False)
+            End With
+92
+            If Not MaandVinden Is Nothing Then
+                If MaandVinden.Row > MaandCounterStart + 13 Then
+                    Error.DebugTekst Tekst:="Month.row is to high in month counter" & vbNewLine _
+                                    & "MaandNr= " & MaandNr, FunctionName:=SubName
+                    FactuurLijstOut = "FacNrMonthCount>Start"
+                    GoTo EndFunction
+                End If
+                .Range("H" & MaandVinden.Row).Value = Volgnummer 'Volgnummer in maand factuur teller zetten
+            Else
+                Error.DebugTekst Tekst:="Problem with getting month.row in counter" & vbNewLine _
+                                    & "MaandNr= " & MaandNr, FunctionName:=SubName
+                FactuurLijstOut = "FacNrMonthCountRowFalse"
+                GoTo EndFunction
+            End If
+            '----------------
         
 10        Else 'Factuurnummer berekening klopt niet
             MsgBox "Factuurnummering berekening klopt niet meer" & vbNewLine _
@@ -165,9 +205,8 @@ Application.DisplayAlerts = View("Alrt")
                 & "Neem contact op met de software programeur: " & Sheets("Basisgeg.").Range("H26")
             Range("B" & LaatsteRij - 1, "C" & LaatsteRij).ClearContents 'Controle cellen weer leeg maken
             
-            Factuurlijst = "FacNrControlFalse"
-            
-            Exit Function
+            FactuurLijstOut = "FacNrControlFalse"
+            GoTo EndFunction
         End If
 11    Else
         MsgBox "Het programma kan de juiste regel niet vinden voor een factuurnummer controle" & vbNewLine & vbNewLine _
@@ -177,31 +216,40 @@ Application.DisplayAlerts = View("Alrt")
     End If
     End With
 
-Factuurlijst = True
+Admin.ShowOneSheet ("Factuur invoer")
+With Sheets("Factuur invoer")
+    .Range("H2").Value = FactuurNummer 'Factuurnummer vast zetten (deze wordt na het "opnieuw beginnen" weer een formule
+End With
+
+FactuurLijstOut = True
+
+EndFunction:
+ '--------End Function
+Error.DebugTekst Tekst:="Finish: " & FactuurLijstOut, FunctionName:=SubName
+
+Factuurlijst = FactuurLijstOut
 Exit Function
 
 ErrorText:
-If Err.Number <> 0 Then
-    SeeText (SubName)
-    End If
-    Resume Next
+If Err.Number <> 0 Then SeeText (SubName)
+Resume Next
 
 End Function
 
-Function Boekingslijst() As String
+Private Function Boekingslijst() As String
 
 SubName = "'Boekingslijst'"
-If View("Errr") = True Then
-    On Error GoTo ErrorText:
-End If
-
+If View("Errr") = True Then On Error GoTo ErrorText:
 Application.ScreenUpdating = View("Updte")
 Application.DisplayAlerts = View("Alrt")
 
-'------------------Verwerken van facturen in de boekingslijst
+Error.DebugTekst Tekst:="Start", _
+                        FunctionName:=SubName
+
+'------------------Verwerken van facturen in de boekingslijst vanuit factuurlijst
 
 'Bufferen van data
-1 Sheets("Factuurlijst").Select
+1 Admin.ShowOneSheet ("Factuurlijst")
 Boekingsdatum = Range("C2").Value 'Boekingsdatum
 
 'Achternaam + Factuurnummer voor omschrijving
@@ -243,8 +291,8 @@ BTWNul = False
         ElseIf Range(Artikel(art)).Value = Sheets("Basisgeg.").Range("B12").Value Then
             BTWNul = True
         Else
-            Boekingslijst = "Fout BTW tarief bepaling"
-            Exit Function
+            BoekingslijstOut = "Fout BTW tarief bepaling"
+            GoTo EndFunction
         End If
     End If
 Next art
@@ -286,8 +334,8 @@ End If
                 KortingPercentage = Left(Cells(Range(Artikel(art)).Row, Range(Artikel(art)).Column + 1).Value, Len(Cells(Range(Artikel(art)).Row, Range(Artikel(art)).Column + 1)) - 1)
                 ArtikelPrijs(art) = ArtikelPrijsEx - (ArtikelPrijsEx * (KortingPercentage / 100))
             Else
-                Boekingslijst = "Korting niet gesnapt"
-                Exit Function
+                BoekingslijstOut = "Korting niet gesnapt"
+                GoTo EndFunction
             End If
         End If
     Next art
@@ -315,75 +363,98 @@ End If
 10    Else
         MsgBox "BTW berekening is niet juist verlopen" & vbNewLine _
                 & "Verschil is: " & Range("H2").Value - (BTWbedragHoog + BTWbedragLaag + BTWbedragNul)
-        Boekingslijst = "Fout BTW bedrag"
-        Exit Function
+        BoekingslijstOut = "Fout BTW bedrag"
+        GoTo EndFunction
     End If
 
 11 Else
-    Boekingslijst = "Fout BTW tarief"
-    Exit Function
+    BoekingslijstOut = "Fout BTW tarief"
+    GoTo EndFunction
 End If
 
+Error.DebugTekst Tekst:="Finish Buffering", FunctionName:=SubName
 '-------------------------------------------Buffer compleet
 
 'Alle informatie op de juiste plek zetten
-Sheets("Boekingslijst").Select
+Admin.ShowOneSheet ("Boekingslijst")
 
 BeginRij = 2
 
 Opnieuw: 'opnieuw data wegschrijven
-LaatsteRij = Range("D" & BeginRij).End(xlDown).Row 'laatst gevulde rij bepalen
+LaatsteRij = Range("F" & BeginRij).End(xlDown).Row 'laatst gevulde rij bepalen
 Rij = 1 'Rij teller voor verschillende BTW tarieven
 
+Dim ReferentieKolom As String
+Dim BoekingsdatumKolom As String
+Dim OmschrijvingKolom As String
+Dim CategorieKolom As String
+Dim BTWTariefKolom As String
+Dim BedragKolom As String
+
+ReferentieKolom = "D"
+BoekingsdatumKolom = "E"
+OmschrijvingKolom = "F"
+CategorieKolom = "G"
+BTWTariefKolom = "I"
+BedragKolom = "J"
+
+Error.DebugTekst Tekst:="Set Kolom letters", FunctionName:=SubName
+
 12 If IsEmpty(Range("C" & LaatsteRij + 1).Value) Then 'checken of rij echt leeg is
-    Range("C" & LaatsteRij + 1).Value = Boekingsdatum
-    Range("D" & LaatsteRij + 1).Value = Omschrijving
-    Range("E" & LaatsteRij + 1).Value = Categorie
+    Range(ReferentieKolom & LaatsteRij + 1).Value = "'" & FactuurNummer
+    Range(BoekingsdatumKolom & LaatsteRij + 1).Value = Boekingsdatum
+    Range(OmschrijvingKolom & LaatsteRij + 1).Value = Omschrijving
+    Range(CategorieKolom & LaatsteRij + 1).Value = Categorie
     
     If BTW = 1 Then 'alles is 1 BTW tarief
-        Range("G" & LaatsteRij + 1).Value = BTWTarief
-        Range("H" & LaatsteRij + 1).Value = Bedrag
+        Range(BTWTariefKolom & LaatsteRij + 1).Value = BTWTarief
+        Range(BedragKolom & LaatsteRij + 1).Value = Bedrag
         
     Else 'er zijn meer BTW tarieven, nu per tarief een nieuwe regel aanmaken
         If BTWHoog Then
             OmschrijvingHoog = Omschrijving & " | " & Sheets("Basisgeg.").Range("B10").Value * 100 & "% BTW"
             
-            Range("D" & LaatsteRij + Rij).Value = OmschrijvingHoog
-            Range("G" & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B10").Value
-            Range("H" & LaatsteRij + Rij).Value = BTWbedragHoog
+            Range(ReferentieKolom & LaatsteRij + 1).Value = "'" & FactuurNummer
+            Range(OmschrijvingKolom & LaatsteRij + Rij).Value = OmschrijvingHoog
+            Range(BTWTariefKolom & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B10").Value
+            Range(BedragKolom & LaatsteRij + Rij).Value = BTWbedragHoog
         
             Rij = Rij + 1
         End If
         If BTWLaag Then
             OmschrijvingLaag = Omschrijving & " | " & Sheets("Basisgeg.").Range("B11").Value * 100 & "% BTW"
-            If IsEmpty(Range("D" & LaatsteRij + Rij).Value) Then 'checken of de volgende rij leeg is
-                Range("C" & LaatsteRij + Rij).Value = Boekingsdatum
-                Range("D" & LaatsteRij + Rij).Value = OmschrijvingLaag
-                Range("E" & LaatsteRij + Rij).Value = Categorie
-                Range("G" & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B11").Value
-                Range("H" & LaatsteRij + Rij).Value = BTWbedragLaag
+            If IsEmpty(Range(OmschrijvingKolom & LaatsteRij + Rij).Value) Then 'checken of de volgende rij leeg is
+                Range(ReferentieKolom & LaatsteRij + 1).Value = "'" & FactuurNummer
+                Range(BoekingsdatumKolom & LaatsteRij + Rij).Value = Boekingsdatum
+                Range(OmschrijvingKolom & LaatsteRij + Rij).Value = OmschrijvingLaag
+                Range(CategorieKolom & LaatsteRij + Rij).Value = Categorie
+                Range(BTWTariefKolom & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B11").Value
+                Range(BedragKolom & LaatsteRij + Rij).Value = BTWbedragLaag
             Else 'volgende rij is al gevuld
-                LaatsteRij = Range("D" & LaatsteRij).End(xlDown).Row 'laatst gevulde rij bepalen
+                LaatsteRij = Range(OmschrijvingKolom & LaatsteRij).End(xlDown).Row 'laatst gevulde rij bepalen
                 
                 If LaatsteRij = Range("C4").End(xlDown).Row Then 'check of volgende rij ook leeg is
-                    Range("C" & LaatsteRij + Rij).Value = Boekingsdatum
-                    Range("D" & LaatsteRij + Rij).Value = OmschrijvingLaag
-                    Range("E" & LaatsteRij + Rij).Value = Categorie
-                    Range("G" & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B11").Value
-                    Range("H" & LaatsteRij + Rij).Value = BTWbedragLaag
+                    Range(ReferentieKolom & LaatsteRij + 1).Value = "'" & FactuurNummer
+                    Range(BoekingsdatumKolom & LaatsteRij + Rij).Value = Boekingsdatum
+                    Range(OmschrijvingKolom & LaatsteRij + Rij).Value = OmschrijvingLaag
+                    Range(CategorieKolom & LaatsteRij + Rij).Value = Categorie
+                    Range(BTWTariefKolom & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B11").Value
+                    Range(BedragKolom & LaatsteRij + Rij).Value = BTWbedragLaag
                 Else
                     If LaatsteRij > Range("C4").End(xlDown).Row Then 'omschrijving is vergeten
-                        Range("C" & LaatsteRij + Rij).Value = Boekingsdatum
-                        Range("D" & LaatsteRij + Rij).Value = OmschrijvingLaag
-                        Range("E" & LaatsteRij + Rij).Value = Categorie
-                        Range("G" & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B11").Value
-                        Range("H" & LaatsteRij + Rij).Value = BTWbedragLaag
+                        Range(ReferentieKolom & LaatsteRij + 1).Value = "'" & FactuurNummer
+                        Range(BoekingsdatumKolom & LaatsteRij + Rij).Value = Boekingsdatum
+                        Range(OmschrijvingKolom & LaatsteRij + Rij).Value = OmschrijvingLaag
+                        Range(CategorieKolom & LaatsteRij + Rij).Value = Categorie
+                        Range(BTWTariefKolom & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B11").Value
+                        Range(BedragKolom & LaatsteRij + Rij).Value = BTWbedragLaag
                     Else 'datum is vergeten
-                        Range("C" & LaatsteRij + Rij).Value = Boekingsdatum
-                        Range("D" & LaatsteRij + Rij).Value = OmschrijvingLaag
-                        Range("E" & LaatsteRij + Rij).Value = Categorie
-                        Range("G" & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B11").Value
-                        Range("H" & LaatsteRij + Rij).Value = BTWbedragLaag
+                        Range(ReferentieKolom & LaatsteRij + 1).Value = "'" & FactuurNummer
+                        Range(BoekingsdatumKolom & LaatsteRij + Rij).Value = Boekingsdatum
+                        Range(OmschrijvingKolom & LaatsteRij + Rij).Value = OmschrijvingLaag
+                        Range(CategorieKolom & LaatsteRij + Rij).Value = Categorie
+                        Range(BTWTariefKolom & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B11").Value
+                        Range(BedragKolom & LaatsteRij + Rij).Value = BTWbedragLaag
                     End If
                 End If
             End If
@@ -394,39 +465,44 @@ Rij = 1 'Rij teller voor verschillende BTW tarieven
         If BTWNul Then
             OmschrijvingNul = Omschrijving & " | " & Sheets("Basisgeg.").Range("B12").Value & "% BTW"
             If Rij > 1 Then 'BTWHoog of BTWLaag is ook ingevuld
-                If IsEmpty(Range("C" & LaatsteRij + Rij).Value) Then 'checken of de volgende rij leeg is
-                    Range("C" & LaatsteRij + Rij).Value = Boekingsdatum
-                    Range("D" & LaatsteRij + Rij).Value = OmschrijvingNul
-                    Range("E" & LaatsteRij + Rij).Value = Categorie
-                    Range("G" & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B12").Value
-                    Range("H" & LaatsteRij + Rij).Value = BTWbedragNul
+                If IsEmpty(Range(BoekingsdatumKolom & LaatsteRij + Rij).Value) Then 'checken of de volgende rij leeg is
+                    Range(ReferentieKolom & LaatsteRij + 1).Value = "'" & FactuurNummer
+                    Range(BoekingsdatumKolom & LaatsteRij + Rij).Value = Boekingsdatum
+                    Range(OmschrijvingKolom & LaatsteRij + Rij).Value = OmschrijvingNul
+                    Range(CategorieKolom & LaatsteRij + Rij).Value = Categorie
+                    Range(BTWTariefKolom & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B12").Value
+                    Range(BedragKolom & LaatsteRij + Rij).Value = BTWbedragNul
                 Else 'volgende rij is al gevuld
-                    LaatsteRij = Range("D" & LaatsteRij).End(xlDown).Row 'laatst gevulde rij bepalen
+                    LaatsteRij = Range(OmschrijvingKolom & LaatsteRij).End(xlDown).Row 'laatst gevulde rij bepalen
                     
                     If LaatsteRij = Range("C4").End(xlDown).Row Then 'check of volgende rij ook leeg is
-                        Range("C" & LaatsteRij + Rij).Value = Boekingsdatum
-                        Range("D" & LaatsteRij + Rij).Value = OmschrijvingNul
-                        Range("E" & LaatsteRij + Rij).Value = Categorie
-                        Range("G" & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B12").Value
-                        Range("H" & LaatsteRij + Rij).Value = BTWbedragNul
+                        Range(ReferentieKolom & LaatsteRij + 1).Value = "'" & FactuurNummer
+                        Range(BoekingsdatumKolom & LaatsteRij + Rij).Value = Boekingsdatum
+                        Range(OmschrijvingKolom & LaatsteRij + Rij).Value = OmschrijvingNul
+                        Range(CategorieKolom & LaatsteRij + Rij).Value = Categorie
+                        Range(BTWTariefKolom & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B12").Value
+                        Range(BedragKolom & LaatsteRij + Rij).Value = BTWbedragNul
                     Else
                         If LaatsteRij > Range("C4").End(xlDown).Row Then 'omschrijving is vergeten
-                            Range("C" & LaatsteRij + Rij).Value = Boekingsdatum
-                            Range("D" & LaatsteRij + Rij).Value = OmschrijvingNul
-                            Range("E" & LaatsteRij + Rij).Value = Categorie
-                            Range("G" & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B12").Value
-                            Range("H" & LaatsteRij + Rij).Value = BTWbedragNul
+                            Range(ReferentieKolom & LaatsteRij + 1).Value = "'" & FactuurNummer
+                            Range(BoekingsdatumKolom & LaatsteRij + Rij).Value = Boekingsdatum
+                            Range(OmschrijvingKolom & LaatsteRij + Rij).Value = OmschrijvingNul
+                            Range(CategorieKolom & LaatsteRij + Rij).Value = Categorie
+                            Range(BTWTariefKolom & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B12").Value
+                            Range(BedragKolom & LaatsteRij + Rij).Value = BTWbedragNul
                         Else 'datum is vergeten
-                            Range("C" & LaatsteRij + Rij).Value = Boekingsdatum
-                            Range("D" & LaatsteRij + Rij).Value = OmschrijvingNul
-                            Range("E" & LaatsteRij + Rij).Value = Categorie
-                            Range("G" & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B12").Value
-                            Range("H" & LaatsteRij + Rij).Value = BTWbedragNul
+                            Range(ReferentieKolom & LaatsteRij + 1).Value = "'" & FactuurNummer
+                            Range(BoekingsdatumKolom & LaatsteRij + Rij).Value = Boekingsdatum
+                            Range(OmschrijvingKolom & LaatsteRij + Rij).Value = OmschrijvingNul
+                            Range(CategorieKolom & LaatsteRij + Rij).Value = Categorie
+                            Range(BTWTariefKolom & LaatsteRij + Rij).Value = Sheets("Basisgeg.").Range("B12").Value
+                            Range(BedragKolom & LaatsteRij + Rij).Value = BTWbedragNul
                         End If
                     End If
                 End If
             Else 'BTWHoog of BTWLaag is niet geweest
-                Boekingslijst = "Fout invullen meedere BTW tarieven"
+                BoekingslijstOut = "Fout invullen meedere BTW tarieven"
+                GoTo EndFunction
             End If
         End If
     End If
@@ -436,25 +512,34 @@ Else 'overnieuw een lege plek vinden
 End If
 'Klaar
 
-Boekingslijst = True
+BoekingslijstOut = True
+EndFunction:
+ '--------End Function
+Error.DebugTekst Tekst:="Finish: " & BoekingslijstOut, FunctionName:=SubName
+
+Boekingslijst = BoekingslijstOut
 Exit Function
 
 ErrorText:
-If Err.Number <> 0 Then
-    SeeText (SubName)
-    End If
-    Resume Next
+If Err.Number <> 0 Then SeeText (SubName)
+Resume Next
 
 End Function
 
 Sub EmailFactuur()
 
 SubName = "'EmailFactuur'"
-If View("Errr") = True Then
-    On Error GoTo ErrorText:
-End If
+If View("Errr") = True Then On Error GoTo ErrorText:
+Application.ScreenUpdating = View("Updte")
+Application.DisplayAlerts = View("Alrt")
+
+Error.DebugTekst Tekst:="Start", _
+                        FunctionName:=SubName
+'----Start
 
 Dim FactuurNummer As String
+
+ActiveSht = ActiveSheet.Name
 
 10
 'Krijg de factuurnummer
@@ -556,44 +641,55 @@ Else
 End If
 
 70
-With iMsg
-    Set .Configuration = iConf
-    .To = EmailTo
-    .CC = EmailCopy
-    .BCC = EmailBCC
-    .From = """Factuur """ & Sheets("Basisgeg.").Range("B2").Value & " < " & Sheets("Basisgeg.").Range("E9").Value & ">"
-    .Subject = "Nieuw factuur van """ & Sheets("Basisgeg.").Range("B2").Value & Sheets("Factuur").Range("H17").Value
-    .HTMLBody = GetBody()
-    .AddAttachment AttachedInvoice
-    .Send
-End With
+'With iMsg
+'    Set .Configuration = iConf
+'    .To = EmailTo
+'   .CC = EmailCopy
+'    .BCC = EmailBCC
+'    .From = """Factuur """ & Sheets("Basisgeg.").Range("B2").Value & " < " & Sheets("Basisgeg.").Range("E9").Value & ">"
+'    .Subject = "Nieuw factuur van """ & Sheets("Basisgeg.").Range("B2").Value & Sheets("Factuur").Range("H17").Value
+'    .HTMLBody = GetBody()
+'    .AddAttachment AttachedInvoice
+'    .Send
+'End With
+EmailFrom = """Factuur """ & Sheets("Basisgeg.").Range("B2").Value & " < " & Sheets("Basisgeg.").Range("E9").Value & ">"
+EmailSubject = "Nieuw factuur van """ & Sheets("Basisgeg.").Range("B2").Value & Sheets("Factuur").Range("H17").Value
+EmailBody = GetBody()
+
+Error.SendCDOmail eTo:="anko@zwervers.org", eFrom:=EmailFrom, eSubject:=EmailSubject, eBody:=EmailBody, _
+                    eCopy:=EmailCopy, eBCC:=EmailBCC, eAttach:=AttachedInvoice
+
+Admin.ShowOneSheet (ActiveSht)
 
 MsgBox "Email is verzonden"
 
+ '--------End Function
+Error.DebugTekst Tekst:="Finish", FunctionName:=SubName
 Exit Sub
 
 ErrorText:
+Debug.Print Err.Description
 If Err.Number <> 0 Then
     SeeText (SubName)
-    End If
-    Resume Next
+End If
+Resume Next
 
 End Sub
 
-Function GetBody()
+Private Function GetBody()
 
+SubName = "'GetBody'"
+If View("Errr") = True Then On Error GoTo ErrorText:
+Application.ScreenUpdating = View("Updte")
+Application.DisplayAlerts = View("Alrt")
+
+Error.DebugTekst Tekst:="Start", _
+                        FunctionName:=SubName
+'----Start
     Dim StrBodyOpen As String 'opening text of the email
     Dim StrBodyClose As String 'end text of the email
     Dim rngHtml As Range 'Range for the changing body info (factuur)
     Dim rngLogo As Range 'Range of the header
-   
-SubName = "'GetBody'"
-If View("Errr") = True Then
-    On Error GoTo ErrorText:
-End If
-
-Application.ScreenUpdating = View("Updte")
-Application.DisplayAlerts = View("Alrt")
     
 100    StrBodyOpen = "Beste " & Sheets("Factuur").Range("D10").Value _
                     & "<br><br>Er is een nieuwe factuur voor je klaargemaakt. Hieronder wordt een HTML-versie weergegeven." _
@@ -601,21 +697,24 @@ Application.DisplayAlerts = View("Alrt")
                     & "<br>Wanneer er verder vragen zijn kan je deze e-mail beantwoorden, dan komt je vraag bij mij terecht." _
                     & "<br>Hartelijke groet Liesbeth"
 'haal beveiliging van het werkblad
-If BackgroundFunction.Bewerkbaar("Factuur") Then
+If Admin.Bewerkbaar("Factuur") Then
 110  Set rngHtml = Sheets("Factuur").Range("B1", "K53").SpecialCells(xlCellTypeVisible)
      Set rngLogo = Sheets("Factuur").Range("B1:K5")
      
-     If BackgroundFunction.NietBewerkbaar("Factuur") Then
+     If Admin.NietBewerkbaar("Factuur") Then
      Else
         MsgBox "Kan Werkblad: 'Factuur' niet opnieuw beveiligen. Programma maakt een critieke stop! Code:GetBody110"
         End
      End If
 Else
-111  GetBody = False
-     If BackgroundFunction.NietBewerkbaar("Factuur") Then
-        Exit Function
+111  GetBodyOut = False
+     If Admin.NietBewerkbaar("Factuur") Then
+        GoTo EndFunction
      Else
-        MsgBox "Kan Werkblad: 'Factuur' niet opnieuw beveiligen. Programma maakt een critieke stop! Code:GetBody111"
+        Dim mTxt As String
+        mTxt = "Kan Werkblad: 'Factuur' niet opnieuw beveiligen. Programma maakt een critieke stop! Code:GetBody111"
+        Error.DebugTekst Tekst:=mTxt, FunctionName:=SubName
+        MsgBox Prompt:=mTxt, Buttons:=vbCritical, Title:="Critieke STOP"
         End
      End If
 End If
@@ -624,19 +723,33 @@ End If
 
 Maken:
     
-900    GetBody = StrBodyOpen & RangetoHTML(rngHtml, rngLogo) & StrBodyClose
+900    GetBodyOut = StrBodyOpen & RangetoHTML(rngHtml, rngLogo) & StrBodyClose
     
+EndFunction:
+ '--------End Function
+Error.DebugTekst Tekst:="Finish: " & GetBodyOut, FunctionName:=SubName
+
+GetBody = GetBodyOut
 Exit Function
 
 ErrorText:
-If Err.Number <> 0 Then
-    SeeText (SubName)
-    End If
-    Resume Next
+If Err.Number <> 0 Then SeeText (SubName)
+Resume Next
 
 End Function
 
-Function RangetoHTML(text As Range, logo As Range)
+Private Function RangetoHTML(text As Range, logo As Range)
+
+SubName = "'RangeToHtml'"
+If View("Errr") = True Then On Error GoTo ErrorText:
+Application.ScreenUpdating = View("Updte")
+Application.DisplayAlerts = View("Alrt")
+
+Error.DebugTekst Tekst:="Start input: " & vbNewLine _
+                        & "text: " & text.Address & vbNewLine _
+                        & "logo: " & logo.Address, _
+                        FunctionName:=SubName
+'----Start
 
     Dim fso As Object
     Dim ts As Object
@@ -644,15 +757,6 @@ Function RangetoHTML(text As Range, logo As Range)
     Dim TempWB As Workbook
     Dim BaseFile As Workbook
 
-SubName = "'RangeToHtml'"
-If View("Errr") = True Then
-    On Error GoTo ErrorText:
-End If
-
-
-Application.ScreenUpdating = View("Updte")
-Application.DisplayAlerts = View("Alrt")
-    
 1    TempFile = Environ$("temp") & "\" & Format(Now, "dd-mm-yy hh-mm-ss") & ".htm"
      Set BaseFile = ThisWorkbook
 2    Set TempWB = Workbooks.Add(1)
@@ -688,7 +792,7 @@ Application.DisplayAlerts = View("Alrt")
     'Publish the sheet to a htm file
 20    With TempWB.PublishObjects.Add( _
          SourceType:=xlSourceRange, _
-         Filename:=TempFile, _
+         FileName:=TempFile, _
          Sheet:=TempWB.Sheets(1).Name, _
          Source:=TempWB.Sheets(1).UsedRange.Address, _
          HtmlType:=xlHtmlStatic)
@@ -698,9 +802,9 @@ Application.DisplayAlerts = View("Alrt")
     'Read all data from the htm file into RangetoHTML
     Set fso = CreateObject("Scripting.FileSystemObject")
     Set ts = fso.GetFile(TempFile).OpenAsTextStream(1, -2)
-30    RangetoHTML = ts.readall
+30    RangetoHTMLOut = ts.readall
 31    ts.Close
-32    RangetoHTML = Replace(RangetoHTML, "align=center x:publishsource=", _
+32    RangetoHTMLOut = Replace(RangetoHTMLOut, "align=center x:publishsource=", _
                           "align=left x:publishsource=")
 
     'Close TempWB
@@ -713,11 +817,16 @@ Application.DisplayAlerts = View("Alrt")
     Set fso = Nothing
     Set TempWB = Nothing
 
+EndFunction:
+ '--------End Function
+Error.DebugTekst Tekst:="Finish: " & RangetoHTMLOut, FunctionName:=SubName
+
+RangetoHTML = RangetoHTMLOut
 Exit Function
+
 ErrorText:
-If Err.Number <> 0 Then
-    SeeText (SubName)
-    End If
-    Resume Next
+If Err.Number <> 0 Then SeeText (SubName)
+Resume Next
+
 End Function
 

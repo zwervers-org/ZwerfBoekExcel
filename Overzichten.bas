@@ -1,5 +1,16 @@
 Attribute VB_Name = "Overzichten"
 Sub GenereerAfdrukBoeking()
+    
+SubName = "'GenereerAfdrukBoeking'"
+If View("Errr") = True Then On Error GoTo ErrorText:
+Application.ScreenUpdating = View("Updte")
+Application.DisplayAlerts = View("Alrt")
+
+Error.DebugTekst Tekst:="Start", _
+                        FunctionName:=SubName
+'----Start
+    
+    
     EindeBoeking = Sheets("Boekingslijst").Range("C4").End(xlDown).Row
     
     Sheets("Boekingslijst").Range("B3:O1048576").AdvancedFilter Action:=xlFilterCopy _
@@ -27,5 +38,13 @@ Sub GenereerAfdrukBoeking()
     Range("K19").FormulaR1C1 = WorksheetFunction.Sum(Range("K22:K" & EindeAfdruk)) 'Totaal voorheffing
     Range("L19").FormulaR1C1 = WorksheetFunction.Sum(Range("L22:L" & EindeAfdruk)) 'Totaal netto inkomsten
     Range("M19").FormulaR1C1 = WorksheetFunction.Sum(Range("M22:M" & EindeAfdruk)) 'Totaal netto uitgaven
-    
+   
+ '--------End Function
+Error.DebugTekst Tekst:="Finish", FunctionName:=SubName
+Exit Sub
+
+ErrorText:
+If Err.Number <> 0 Then SeeText (SubName)
+Resume Next
+  
 End Sub

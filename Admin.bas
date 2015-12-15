@@ -2,10 +2,12 @@ Attribute VB_Name = "Admin"
 
 Sub ShowAllSheets()
 
+Error.DebugTekst Tekst:="ShowAllSheets > Execute"
+
 ActSht = ActiveSheet.Name
 
 For i = 1 To Sheets.count
-        Sheets(i).Visible = xlSheetVisible
+        Sheets(Sheets(i).Name).Visible = xlSheetVisible
 Next i
 
 Sheets(ActSht).Select
@@ -13,29 +15,35 @@ Sheets(ActSht).Select
 End Sub
 Sub ShowOneSheet(Sht As String)
 
+Error.DebugTekst Tekst:="ShowOneSheet > " & Sht
+
 ActSht = ActiveSheet.Name
 
-If ActSht <> Sht Then
-    Sheets(Sht).Visible = xlSheetVisible
-    Sheets(Sht).Select
-    If BackgroundFunction.InArray("Modus", Sheets("Basisgeg.").Range("O1").Value) = False Then _
+If BackgroundFunction.InArray("Modus", Sheets("Basisgeg.").Range("O1").Value) = False Then
+    If ActSht <> Sht Then
+        Sheets(Sht).Visible = xlSheetVisible
+        Sheets(Sht).Select
         Sheets(ActSht).Visible = xlSheetHidden
-End If
-
-For i = 1 To Sheets.count
-    If Sheets(i).Name <> Sht Then
-        If BackgroundFunction.InArray("Modus", Sheets("Basisgeg.").Range("O1").Value) = False Then _
-            Sheets(i).Visible = xlSheetHidden
     End If
-Next i
+
+    For i = 1 To Sheets.count
+        If Sheets(i).Name <> Sht Then
+            Sheets(i).Visible = xlSheetHidden
+        End If
+    Next i
+End If
 
 End Sub
 
 Sub HideAllSheets()
 
+Error.DebugTekst Tekst:="HideAllSheets > Execute"
+
 If BackgroundFunction.InArray("Modus", Sheets("Basisgeg.").Range("O1").Value) Then Exit Sub
 
 ActSht = "Factuur invoer"
+
+Admin.ShowOneSheet (ActSht)
 
 For i = 1 To Sheets.count
     If ActSht <> Sheets(i).Name Then
@@ -51,45 +59,43 @@ End Sub
 
 Sub ActivateWorkModus()
 
-Admin.ShowAllSheets
-
-With Sheets("Basisgeg.")
-    'Verplichte velden checken
-    If .Range("B8").Value = "" And .Range("B2").Value = "" And _
-        .Range("B5").Value = "" And .Range("B6").Value = "" Then
-            MsgBox "Bestand wordt opgeslagen als 'LEEG'"
-            .Range("O1").Value = "Leeg"
-    End If
-End With
+Error.DebugTekst Tekst:="Start ActivateWorkModus"
 
 For i = 1 To Sheets.count
-    Admin.NietBewerkbaar (Sheets(i).Name)
+    Admin.Bewerkbaar (Sheets(i).Name)
     
-    Sheets(i).Select
+    Admin.ShowOneSheet (Sheets(i).Name)
     If BackgroundFunction.InArray("Database", Sheets(i).Name) = False Then _
         ActiveWindow.DisplayGridlines = False 'Rasterlijnen
     
-    With Sheets(i)
+    With Sheets(Sheets(i).Name)
         Select Case .Name
             Case "Basisgeg."
                 .Range("O1").Value = "Work modus"
                 .ScrollArea = "A1:H100"
+                .Range("N:Q").EntireColumn.Hidden = True
             Case "Boekingslijst"
-                .ScrollArea = "A1:N10000"
+                .ScrollArea = "A1:P10000"
+                .Range("Q:BO").EntireColumn.Hidden = True
             Case "Factuurlijst"
-                .ScrollArea = "A1:CE10000"
+                '.ScrollArea = "A1:CE10000"
             Case "Factuur invoer"
                 .ScrollArea = "A1:P39"
+                .Range("B:B,J:J,L:L,S:V").EntireColumn.Hidden = True
+                .Range("A40:A44").EntireRow.Hidden = True
             Case "Factuur"
                 .ScrollArea = "A1:S53"
             Case "Artikelen"
                 .ScrollArea = "A1:G10000"
             Case "Debiteuren"
                 .ScrollArea = "A1:K10000"
+                '.Range("A:B").EntireColumn.Hidden = True
+                .Range("B:B").EntireColumn.Hidden = True
+                .Range("3:3").EntireRow.Hidden = True
             Case "Maandoverzicht"
-                .ScrollArea = "A1:M22"
+                .ScrollArea = "A1:M23"
             Case "Kwartaaloverzicht"
-                .ScrollArea = "A1:M22"
+                .ScrollArea = "A1:M23"
             Case "Jaaroverzicht"
                 .ScrollArea = "A1:M32"
             Case "Afdruk boekingen"
@@ -100,9 +106,11 @@ For i = 1 To Sheets.count
     With ActiveWindow
         .DisplayHeadings = False 'Kolom en rij koppen
     End With
+    Admin.NietBewerkbaar (Sheets(i).Name)
 Next i
 
 With ActiveWindow
+    .DisplayGridlines = False 'Rasterlijnen verbergen
     .DisplayWorkbookTabs = False 'Werkblad tabs
     .DisplayHorizontalScrollBar = False 'Horizontaal scrollen uit
     .DisplayVerticalScrollBar = False 'Verticaal scrollen uit
@@ -113,18 +121,31 @@ With Application
     .DisplayFormulaBar = False
 End With
 
+With Sheets("Basisgeg.")
+    'Verplichte velden checken
+    If .Range("B8").Value = "" And .Range("B2").Value = "" And _
+        .Range("B5").Value = "" And .Range("B6").Value = "" Then
+            MsgBox "Bestand wordt opgeslagen als 'LEEG'"
+            .Range("O1").Value = "Leeg"
+    Else
+        .Range("O1").Value = "Work modus"
+    End If
+End With
+
 Admin.HideAllSheets
+
+Error.DebugTekst Tekst:="Finish ActivateWorkModus"
 
 End Sub
 
 Sub DeActivateWorkModus()
 
-Admin.ShowAllSheets
+Error.DebugTekst Tekst:="Start DeActivateWorkModus"
 
 For i = 1 To Sheets.count
     Admin.Bewerkbaar (Sheets(i).Name)
     
-    Sheets(i).Select
+    Admin.ShowOneSheet (Sheets(i).Name)
     With ActiveWindow
         .DisplayGridlines = True 'Rasterlijnen
         .DisplayHeadings = True 'Kolom en rij koppen
@@ -133,7 +154,12 @@ For i = 1 To Sheets.count
         .DisplayVerticalScrollBar = True
     End With
     
-    Sheets(i).ScrollArea = ""
+    Admin.Bewerkbaar (Sheets(i).Name)
+    With Sheets(Sheets(i).Name)
+        .ScrollArea = ""
+        .Cells.EntireColumn.Hidden = False
+        .Cells.EntireRow.Hidden = False
+    End With
     
 Next i
 
@@ -158,9 +184,13 @@ Else
     Sheets("Basisgeg.").Range("O1").Value = "Test modus"
 End If
 
+Error.DebugTekst Tekst:="Finish ActivateWorkModus"
+
 End Sub
 
 Sub HideOneSheet(Sht As String)
+
+Error.DebugTekst Tekst:="HideOneSheet > " & Sht
 
 ActSht = ActiveSheet.Name
 
@@ -176,58 +206,78 @@ End Sub
 Function Bewerkbaar(Sht As String) As Boolean
 
 SubName = "'Bewerkbaar'"
-If View("Errr") = True Then
-    On Error GoTo ErrorText:
-End If
-
+If View("Errr") = True Then On Error GoTo ErrorText:
 Application.ScreenUpdating = View("Updte")
 Application.DisplayAlerts = View("Alrt")
 
-ThisSheet = ActiveSheet.Name
-Sheets(Sht).Select
-ActiveSheet.Unprotect Password:=PassWordChanger()
-Sheets(ThisSheet).Select
+Error.DebugTekst Tekst:="Start input: " & vbNewLine _
+                        & "Sht: " & Sht, _
+                        FunctionName:=SubName
+'----Start
 
-Bewerkbaar = True
+1 ThisSheet = ActiveSheet.Name
+2 Admin.ShowOneSheet (Sht)
+3 ActiveSheet.Unprotect Password:=PassWordChanger()
+4 Admin.ShowOneSheet (ThisSheet)
+5 Bewerkbaar = True
+
+'--------End Function
+Error.DebugTekst ("Sheet: " & Sht & " > Bewerkbaar = " & Bewerkbaar)
 Exit Function
 
 ErrorText:
-If Err.Number <> 0 Then
-    SeeText (SubName)
-    End If
-    Resume Next
+If Err.Number <> 0 Then SeeText (SubName)
+Resume Next
     
 End Function
 
 Function NietBewerkbaar(Sht As String) As Boolean
 
 SubName = "'NietBewerkbaar'"
-If View("Errr") = True Then
-    On Error GoTo ErrorText:
-End If
-
+If View("Errr") = True Then On Error GoTo ErrorText:
 Application.ScreenUpdating = View("Updte")
 Application.DisplayAlerts = View("Alrt")
 
+Error.DebugTekst Tekst:="Start input: " & vbNewLine _
+                        & "Sht: " & Sht, _
+                        FunctionName:=SubName
+'----Start
+5
 If BackgroundFunction.InArray("ModusBeveiliging", Sheets("Basisgeg.").Range("O1").Value) Then Exit Function
 
 10 ThisSheet = ActiveSheet.Name
 
-100 Sheets(Sht).Select
+100 Admin.ShowOneSheet (Sht)
 
-111     ActiveSheet.Protect Password:=PassWordChanger()
+110 'Beveiliging opschuiven om te voorkomen dat wijzigingen kunnen ontstaan
+Select Case Sht
+    Case "Debiteuren"
+        With Sheets("Debiteuren")
+            Admin.Bewerkbaar (Sht)
+            Einde = Range("A1").End(xlDown).Row
+            .Range("C4:D" & Einde).Locked = True
+        End With
+    Case "Artikelen"
+        With Sheets("Artikelen")
+            Admin.Bewerkbaar (Sht)
+            Einde = Range("A1").End(xlDown).Row
+            .Range("C4:C" & Einde).Locked = True
+        End With
+End Select
 
-900 Sheets(ThisSheet).Select
+111 ActiveSheet.Protect Password:=PassWordChanger()
+
+900 Admin.ShowOneSheet (ThisSheet)
 
 999 NietBewerkbaar = True
 
+'--------End Function
+Error.DebugTekst ("Sheet: " & Sht & " > NietBewerkbaar = " & NietBewerkbaar)
 Exit Function
 
 ErrorText:
-If Err.Number <> 0 Then
-    SeeText (SubName)
-    End If
-    Resume Next
+If Err.Number <> 0 Then SeeText (SubName)
+Resume Next
 
 End Function
 
@@ -238,6 +288,24 @@ PassWordChanger = "Freedom1945"
 End Function
 
 Sub Afsluiten()
+
+Error.DebugTekst Tekst:="Afsluiten > Execute"
+
+ActiveSht = ActiveSheet.Name
+
+If ActiveSht <> "Basisgeg." Then Admin.ShowOneSheet ("Basisgeg.")
+    BackupDate = Sheets("Basisgeg.").Range("O11").Value
+    If BackupDate > Format(Now + 30, "ddMMMyyyy-hhmm") Then OpslaanBackup.Backup
+    
+    'Verwijder fout debugger counter zodat fouten geregistreerd blijven
+    If Sheets("Basisgeg.").Range("O5").Value > 100 Then
+        Admin.Bewerkbaar ("Basisgeg.")
+        Sheets("Basisgeg.").Range("O5").ClearContents
+        Admin.NietBewerkbaar ("Basisgeg.")
+    End If
+If ActiveSht <> "Basisgeg." Then Admin.ShowOneSheet (ActiveSht)
+
+
 
 With ThisWorkbook
     .Save
@@ -257,7 +325,7 @@ End If
 Application.ScreenUpdating = View("Updte")
 Application.DisplayAlerts = View("Alrt")
 
-'Error.DebugTekst Tekst:="Start", FunctionName:=SubName
+Error.DebugTekst Tekst:="Start", FunctionName:=SubName
 
 ' Excel macro to export all VBA source code in this project to text files for proper source control versioning
 ' Requires enabling the Excel setting in Options/Trust Center/Trust Center Settings/Macro Settings/Trust access to the VBA project object model
@@ -273,17 +341,17 @@ Application.DisplayAlerts = View("Alrt")
     Dim directory As String
     Dim extension As String
     Dim fso As Object
-    
+5
     'dirStart = ActiveWorkbook.path
     dirStart = "C:\Users\Gebruiker\Documents\GitHub\ZwerfBoekExcel" 'starting directory
     directory = "\" 'new directories for the vba-scripts
-    fName = "Boekhoud-v1-0.xlsm" 'this filename
+    fName = "Boekhoud-v1-1.xlsm" 'this filename
     'path = dirStart & directory
-    
+10
     Set fso = CreateObject("scripting.filesystemobject")
     count = 0
     skiped = 0
-
+20
     If Not fso.FolderExists(dirStart & directory) Then
         'when directory does not exists, make path
         newDir = dirStart
@@ -294,14 +362,14 @@ Application.DisplayAlerts = View("Alrt")
                 Set objFolder = fso.GetFolder(newDir)
             Else
                 Set objFolder = fso.CreateFolder(newDir)
-                Debug.Print "Create folder: " & newDir
+                Error.DebugTekst "Create folder: " & newDir
             End If
         Next
     End If
     Set fso = Nothing
     'Check if the right workbook is active
     If ActiveWorkbook.Name <> fName Then Workbooks(fName).Activate
-    
+30
     For Each VBComponent In ActiveWorkbook.VBProject.VBComponents
         Select Case VBComponent.Type
             Case ClassModule, Document
@@ -314,17 +382,17 @@ Application.DisplayAlerts = View("Alrt")
                 extension = ".txt"
         End Select
             
-                
+40
         On Error Resume Next
         Err.Clear
         
         Bladcheck = InStr(VBComponent.Name, "Blad")
         If Bladcheck > 0 Then
-            Debug.Print ("Skiped: " & VBComponent.Name)
+            Error.DebugTekst ("Skiped: " & VBComponent.Name)
             skiped = skiped + 1
             GoTo Volgende
         End If
-        
+50
         If count = 0 Then directory = dirStart & directory
         path = directory & "\" & VBComponent.Name & extension
         VBComponent.Export (path)
@@ -342,13 +410,14 @@ Application.DisplayAlerts = View("Alrt")
             count = count + 1
             Debug.Print "Exported " & Left$(VBComponent.Name & ":" & Space(Padding), Padding) & path
         End If
-        
+60
 Volgende:
         On Error GoTo ErrorText
     Next
     
     Application.StatusBar = "Successfully exported: " & CStr(count) & " files | Skiped: " & CStr(skiped) & " files"
-    Debug.Print "Successfully exported: " & CStr(count) & " files | Skiped: " & CStr(skiped) & " files"
+    Error.DebugTekst Tekst:="Successfully exported: " & CStr(count) & " files | Skiped: " & CStr(skiped) & " files", _
+                        FunctionName:=SubName
 
 Exit Sub
 
@@ -359,4 +428,5 @@ If Err.Number <> 0 Then
     Resume Next
    
 End Sub
+
 

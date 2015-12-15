@@ -4,98 +4,233 @@ Attribute NieuwDeb.VB_Description = "De macro is opgenomen op 21-10-2005 door Mi
 Attribute NieuwDeb.VB_ProcData.VB_Invoke_Func = " \n14"
 
 SubName = "'NieuwDeb'"
-If View("Errr") = True Then
-    On Error GoTo ErrorText:
-End If
-
-
+If View("Errr") = True Then On Error GoTo ErrorText:
 Application.ScreenUpdating = View("Updte")
 Application.DisplayAlerts = View("Alrt")
 
-    Range("O2:O10").Copy
-    
-2 Admin.ShowOneSheet ("Debiteuren")
-    
-    Einde = Range("C2").End(xlDown).Row 'nieuwe invoer onderaan de pagina toevoegen
-    
-4    Range("C" & Einde + 1).PasteSpecial Paste:=xlValues, Operation:=xlNone, SkipBlanks:= _
-        False, Transpose:=True
-        
-    NieuweDeb = Range("A" & Einde + 1) 'nieuwe toevoeging opslaan om later toe te wijzen
-    
-    'niet sorteren want anders is de debiteurcode niet meer juist
-    'Range("C3:G1000").Sort Key1:=Range("B3"), Order1:=xlAscending, Header:=xlGuess, _
-        OrderCustom:=1, MatchCase:=False, Orientation:=xlTopToBottom 'debuteuren sorteren op alfabetische volgorde
+Error.DebugTekst Tekst:="Start", _
+                        FunctionName:=SubName
+'----Start
 
-6 Admin.ShowOneSheet ("Factuur invoer")
+1 'Beveiliging verwijderen
+If Admin.Bewerkbaar("Debiteuren") = False Then GoTo EindSub
+
+
+2 Admin.ShowOneSheet ("Debiteuren")
+
+With Sheets("Debiteuren")
+3 'nieuwe invoer onderaan de pagina toevoegen
+    Einde1 = .Range("C2").End(xlDown).Row
+    Einde2 = .Range("D2").End(xlDown).Row
+    Einde3 = .Range("A2500").End(xlUp).Row
+    
+    If Einde1 > Einde2 Then Einde = Einde1 Else Einde = Einde2
+    If Einde3 > Einde Then Einde = Einde3
+
+4 'Waarden uit de invoer plakken
+    Sheets("Factuur invoer").Range("O2:O10").Copy
+
+    .Range("C" & Einde + 1).PasteSpecial Paste:=xlValues, Operation:=xlNone, SkipBlanks:= _
+        False, Transpose:=True
+    
+    NieuweDeb = NwDebNr(Einde + 1)
+    If NieuweDeb = False Then GoTo EindSub
+    
+10
+    With Sheets("Debiteuren").Columns(1)
+        Set DebRw = .Find(What:=NieuweDeb, _
+                                After:=.Cells(1), _
+                                LookIn:=xlValues, _
+                                LookAt:=xlWhole, _
+                                SearchOrder:=xlByRows, _
+                                SearchDirection:=xlNext, _
+                                MatchCase:=False)
+    End With
+    NieuweDeb = DebRw.Row - 2
+End With
+
+6   Admin.ShowOneSheet ("Factuur invoer")
     
     With Sheets("Factuur invoer")
-        Range("D2").Value = NieuweDeb 'nieuwe invoer toewijzen
+        Range("V1").Value = NieuweDeb 'nieuwe invoer toewijzen
 8       Range("O2:O14").ClearContents 'velden weer leeg maken
         Range("O7").FormulaR1C1 = "=IF(ISBLANK(R6C15),"""",""Nederland"")"
     End With
-    
+
+'--------End Function
+Error.DebugTekst Tekst:="Finish", FunctionName:=SubName
+
 Exit Sub
+EindSub:
+
+Error.DebugTekst "Bewerkbaarheid wil niet wijzigingen", SubName
+Exit Sub
+
 ErrorText:
-If Err.Number <> 0 Then
-    SeeText (SubName)
-    End If
-    Resume Next
+If Err.Number <> 0 Then SeeText (SubName)
+Resume Next
 
 End Sub
 
-Sub NieuwArt()
+Private Function NwDebNr(ActiveRow As Integer) As String
 
-SubName = "'NiewArt'"
-If View("Errr") = True Then
-    On Error GoTo ErrorText:
-End If
-
+SubName = "'NwDebNr'"
+If View("Errr") = True Then On Error GoTo ErrorText:
 Application.ScreenUpdating = View("Updte")
 Application.DisplayAlerts = View("Alrt")
 
-    NieuweArt = Range("O20")
-    Range("O20:O24").Copy
+Error.DebugTekst Tekst:="Start input:" & vbNewLine _
+                    & "ActiveRow: " & ActiveRow, _
+                        FunctionName:=SubName
+'----Start
 
-3   Admin.ShowOneSheet ("Artikelen")
-
-    Range("C2").End(xlDown).Select
-5   ActiveCell.Offset(1, 0).PasteSpecial Paste:=xlValues, Operation:=xlNone, SkipBlanks:= _
-        False, Transpose:=True
+1 'nieuwe toevoeging opslaan om later toe te wijzen
+With Sheets("Debiteuren")
+    .Range("A" & ActiveRow).Value = Application.WorksheetFunction.Max(.Range("A:A")) + 1
+    .Range("B" & ActiveRow).Value = .Range("D" & ActiveRow).Value & " " & .Range("C" & ActiveRow).Value
     
-    'niet sorteren want anders is de artikelcode niet meer juist _
-        (opbouw artikelcode: 1ste 2letters, laatste letter, nr.)
-    'Range("C3:G1000").Sort Key1:=Range("C3"), Order1:=xlAscending, Header:=xlGuess, _
+    NwDebNr = .Range("A" & ActiveRow).Value
+
+    Error.DebugTekst "Nw debiteur: " & .Range("A" & ActiveRow).Value, SubName
+
+5 'debuteuren sorteren op alfabetische volgorde (achternaam)
+    .Range("A4:K" & ActiveRow).Sort Key1:=Range("C4"), Order1:=xlAscending, Header:=xlGuess, _
         OrderCustom:=1, MatchCase:=False, Orientation:=xlTopToBottom
-        
-7   Admin.ShowOneSheet ("Factuur invoer")
-    
-8   Range("O20:O28").ClearContents 'velden weer leeg maken
-    
-    'artikel onderaan de lijst met artikelen toevoegen
-    ArtikelCode = Range("A21").End(xlUp).Row + 1
-    ArtikelOmsch = Range("C21").End(xlUp).Row + 1
-    
-    If ArtikelCode Or ArtikelOmsch > 9 Then
-        If ArtikelCode > ArtikelOmsch Then
-13          Range("C" & ArtikelCode).Value = NieuweArt
-        Else
-15          Range("C" & ArtikelOmsch).Value = NieuweArt
-        End If
-    Else
-18      Range("C9").Value = NieuweArt
-    End If
-   
-Exit Sub
+End With
+
+'--------End Function
+Error.DebugTekst Tekst:="Finish", FunctionName:=SubName
+Exit Function
+
 ErrorText:
-If Err.Number <> 0 Then
-    SeeText (SubName)
-    End If
-    Resume Next
+If Err.Number <> 0 Then SeeText (SubName)
+Resume Next
+
+End Function
+
+Sub NieuwArt()
+
+SubName = "'NieuwArt'"
+If View("Errr") = True Then On Error GoTo ErrorText:
+Application.ScreenUpdating = View("Updte")
+Application.DisplayAlerts = View("Alrt")
+
+Error.DebugTekst Tekst:="Start", _
+                        FunctionName:=SubName
+'----Start
+
+If Admin.Bewerkbaar("Artikelen") = False Then GoTo EindSub
+
+'Wanneer er een nieuw artikel wordt ingevoerd
+    NieuweArt = Sheets("Factuur invoer").Range("O20")
+
+2   Admin.ShowOneSheet ("Artikelen")
+    
+With Sheets("Artikelen")
+3 'nieuwe invoer onderaan de pagina toevoegen
+    Einde1 = .Range("C2").End(xlDown).Row
+    Einde2 = .Range("D2").End(xlDown).Row
+    Einde3 = .Range("C2500").End(xlUp).Row 'Check of er nog handmatig artikelen zijn toegevoegd
+    
+    If Einde1 > Einde2 Then Einde = Einde1 Else Einde = Einde2
+    If Einde3 > Einde Then Einde = Einde3
+    
+4 'Waarden uit de invoer plakken
+        Sheets("Factuur invoer").Range("O20:O24").Copy
+        .Range("C" & Einde + 1).PasteSpecial Paste:=xlValues, Operation:=xlNone, SkipBlanks:= _
+            False, Transpose:=True
+        If NwArtCode(Einde + 1) = "" Then GoTo EindSub
+
+End With
+'Wanneer er een nieuw artikel wordt ingevoerd
+7       Admin.ShowOneSheet ("Factuur invoer")
+        
+8       Range("O20:O28").ClearContents 'velden weer leeg maken
+    
+        'artikel onderaan de lijst met artikelen toevoegen
+        ArtikelCode = Range("A21").End(xlUp).Row + 1
+        ArtikelOmsch = Range("C21").End(xlUp).Row + 1
+        
+        If ArtikelCode Or ArtikelOmsch > 9 Then
+            If ArtikelCode > ArtikelOmsch Then
+13              Range("C" & ArtikelCode).Value = NieuweArt
+            Else
+15              Range("C" & ArtikelOmsch).Value = NieuweArt
+            End If
+        Else
+18          Range("C9").Value = NieuweArt
+        End If
+
+'--------End Function
+Error.DebugTekst Tekst:="Finish", FunctionName:=SubName
+
+Exit Sub
+EindSub:
+
+Error.DebugTekst "Probleem met verwerken nieuwe input. Regel: " & Erl, SubName
+Exit Sub
+
+ErrorText:
+If Err.Number <> 0 Then SeeText (SubName)
+Resume Next
    
 End Sub
 
+Private Function NwArtCode(ActiveRow As Integer) As String
+
+SubName = "'NwArtCode'"
+If View("Errr") = True Then On Error GoTo ErrorText:
+Application.ScreenUpdating = View("Updte")
+Application.DisplayAlerts = View("Alrt")
+
+Error.DebugTekst Tekst:="Start input:" & vbNewLine _
+                    & "ActiveRow: " & ActiveRow, _
+                        FunctionName:=SubName
+'----Start
+
+1 'Nieuw artikelcode aanmaken
+    '(opbouw artikelcode: 1ste 2letters, laatste letter, nr.)
+With Sheets("Artikelen")
+    ArtNrMax = Application.WorksheetFunction.Max(.Range("A:A")) + 1
+    'ArtNr = ActiveRow - 1
+    ArtCode = Left(.Range("C" & ActiveRow).Value, 2)
+    ArtCode = UCase(ArtCode & Right(.Range("C" & ActiveRow).Value, 1))
+    ArtCode = ArtCode & ArtNrMax
+    
+    Error.DebugTekst "ArtNr: " & ArtNrMax, SubName
+    Error.DebugTekst "ArtCode: " & ArtCode, SubName
+    
+    .Range("A" & ActiveRow).Value = ArtNrMax
+    .Range("B" & ActiveRow).Value = ArtCode
+
+2 'Sorteren op Artikelcode
+    .Range("A4:G" & ActiveRow).Sort Key1:=Range("B4"), Order1:=xlAscending, Header:=xlGuess, _
+        OrderCustom:=1, MatchCase:=False, Orientation:=xlTopToBottom
+End With
+
+NwArtCode = ArtCode
+
+'--------End Function
+Error.DebugTekst Tekst:="Finish", FunctionName:=SubName
+Exit Function
+
+ErrorText:
+If Err.Number <> 0 Then SeeText (SubName)
+Resume Next
+
+End Function
+
+
 Sub NieuwBoekjaarAanmaken()
+
+SubName "'NieuwBoekjaarAanmaken'"
+If View("Errr") = True Then On Error GoTo ErrorText:
+Application.ScreenUpdating = View("Updte")
+Application.DisplayAlerts = View("Alrt")
+
+Error.DebugTekst Tekst:="Start", _
+                        FunctionName:=SubName
+'----Start
 
 AfsluitCheck = MsgBox("Wilt u een nieuw boekjaar aanmaken en het huidige sluiten?", vbYesNo, "Boekjaar sluiten?")
 
@@ -143,4 +278,13 @@ BoekingLegen:
         .Range("A1:A" & LaatsteRij).EntireRow.Delete
     End With
 End If
+
+'--------End Function
+Error.DebugTekst Tekst:="Finish", FunctionName:=SubName
+Exit Sub
+
+ErrorText:
+If Err.Number <> 0 Then SeeText (SubName)
+Resume Next
+
 End Sub

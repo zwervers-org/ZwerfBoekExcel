@@ -2,12 +2,13 @@ Attribute VB_Name = "LeegMaken"
 Sub FactuurInvoerLeeg()
 
 SubName = "'FactuurInvoerLeeg'"
-If View("Errr") = True Then
-    On Error GoTo ErrorText:
-End If
-
+If View("Errr") = True Then On Error GoTo ErrorText:
 Application.ScreenUpdating = View("Updte")
 Application.DisplayAlerts = View("Alrt")
+
+Error.DebugTekst Tekst:="Start", _
+                        FunctionName:=SubName
+'----Start
 
 Admin.ShowOneSheet ("Factuur invoer")
 
@@ -15,10 +16,23 @@ Admin.Bewerkbaar ("Factuur invoer")
 
 With Sheets("Factuur invoer")
     
-    .Range("D2").Locked = False 'De-blokkeren dat klant veranderd kan worden
+    .Range("V1").Locked = False 'De-blokkeren dat klant veranderd kan worden
     .Range("G24").Value = "" 'Knop /verwerken\ de-blokkeren
-    
-    .Range("D2").Value = "" 'debiteur
+    .Range("I2").Value = "" 'Backload factuurnummer
+        
+    .Range("V1").Value = "" 'debiteur
+    .Range("D3").Value = BackgroundFunction.FormuleProvider("Naam") 'Naam Formule
+    .Range("D4").Value = BackgroundFunction.FormuleProvider("Adres") 'Straat Formule
+    .Range("D5").Value = BackgroundFunction.FormuleProvider("PC_Plaats1") 'PC+Plaat zonder , Formule
+    .Range("E5").Value = BackgroundFunction.FormuleProvider("PC_Plaats") 'PC+Plaats Formule
+    .Range("F4").Value = BackgroundFunction.FormuleProvider("LandNm") 'Land label Formule
+    .Range("F5").Value = BackgroundFunction.FormuleProvider("EmailNm") 'Email label Formule
+    .Range("F6").Value = BackgroundFunction.FormuleProvider("TelefoonNm") 'Telefoon label Formule
+    .Range("G4").Value = BackgroundFunction.FormuleProvider("Land") 'Land Formule
+    .Range("G5").Value = BackgroundFunction.FormuleProvider("Email") 'Email Formule
+    .Range("G6").Value = BackgroundFunction.FormuleProvider("Telefoon") 'Telefoon Formule
+    .Range("K3").Value = BackgroundFunction.FormuleProvider("OpmerkingNm") 'Opmerking label Formule
+    .Range("K4").Value = BackgroundFunction.FormuleProvider("Opmerking") 'Opmerking Formule
     
     .Range("D6").ClearContents 'datum
     
@@ -33,12 +47,19 @@ With Sheets("Factuur invoer")
     
     .Range("D23:D24").ClearContents 'Totaal Korting
     
-    .Range("O2:O14").ClearContents 'Nieuwe klant invoer
+    With .Range("O2:O14") 'Nieuwe klant invoer
+        .Locked = False
+        .ClearContents
+    End With
     .Range("O7").FormulaR1C1 = "=IF(ISBLANK(R6C15),"""",""Nederland"")"
     
-    .Range("O20:O28").ClearContents 'Nieuwe artikel invoer
+    With .Range("O20:O28") 'Nieuwe artikel invoer
+        .Locked = False
+        .ClearContents
+    End With
+        
     
-    .Range("D30").ClearContents 'Korting berekenen
+    .Range("D31").ClearContents 'Korting berekenen
     
     'Factuurnummer formule opnieuw instellen
     .Range("H2").FormulaR1C1 = BackgroundFunction.FormuleProvider("FactuurNrInvoer")
@@ -52,28 +73,30 @@ End With
 
 Admin.NietBewerkbaar ("Factuur invoer")
 
+'--------End Function
+Error.DebugTekst Tekst:="Finish", FunctionName:=SubName
 Exit Sub
-ErrorText:
-If Err.Number <> 0 Then
-    SeeText (SubName)
-    End If
-    Resume Next
 
+ErrorText:
+If Err.Number <> 0 Then SeeText (SubName)
+Resume Next
 End Sub
 
 Sub BoekhoudingLeegMaken()
-SubName = "'BoekhoudingLeegMaken'"
-If View("Errr") = True Then
-    On Error GoTo ErrorText:
-End If
 
+SubName = "'BoekhoudingLeegMaken'"
+If View("Errr") = True Then On Error GoTo ErrorText:
 Application.ScreenUpdating = View("Updte")
 Application.DisplayAlerts = View("Alrt")
+
+Error.DebugTekst Tekst:="Start", _
+                        FunctionName:=SubName
+'----Start
 
 20
 With Sheets("Boekingslijst")
     Einde = .Range("C2").End(xlDown).Row + 10
-    .Range("C4:I" & Einde).ClearContents
+    .Range("C4:K" & Einde).ClearContents
 End With
 
 30
@@ -86,15 +109,17 @@ End With
 With Sheets("Factuur")
     Dim Shp As Shape
     Dim fName As String
-    .PageSetup.RightHeaderPicture.Filename = ""
+    .PageSetup.RightHeaderPicture.FileName = ""
     .PageSetup.RightHeader = ""
     .Range("S2:S7").ClearContents
     .Range("S2").Value = "Ja"
     Admin.Bewerkbaar ("Factuur")
     On Error Resume Next
-        For Each Shp In .Shapes
-            Shp.Delete
-        Next Shp
+        For Each Sh In .Shapes
+           If Not Application.Intersect(Sh.TopLeftCell, .Range("B1:K5")) Is Nothing Then
+                Sh.Delete
+           End If
+        Next Sh
     On Error GoTo ErrorText
     fName = BackgroundFunction.GetFile("Logo")
     BackgroundFunction.InsertPictureInRange PictureFileName:=fName, TargetCells:=Range("K5: K5"), TargetSheet:=Sheets("Factuur")
@@ -122,21 +147,21 @@ End With
 70
 With Sheets("Maandoverzicht")
     .Range("D9").ClearContents
-    .PageSetup.RightHeaderPicture.Filename = ""
+    .PageSetup.RightHeaderPicture.FileName = ""
     .PageSetup.RightHeader = ""
 End With
 
 80
 With Sheets("Kwartaaloverzicht")
     .Range("D9").ClearContents
-    .PageSetup.RightHeaderPicture.Filename = ""
+    .PageSetup.RightHeaderPicture.FileName = ""
     .PageSetup.RightHeader = ""
 End With
 
 90
 With Sheets("Jaaroverzicht")
     .Range("C15:C24,F15:F24").ClearContents
-    .PageSetup.RightHeaderPicture.Filename = ""
+    .PageSetup.RightHeaderPicture.FileName = ""
     .PageSetup.RightHeader = ""
 End With
 
@@ -157,10 +182,11 @@ With Sheets("Basisgeg.")
     .Range("B2").Select
 End With
 
+'--------End Function
+Error.DebugTekst Tekst:="Finish", FunctionName:=SubName
 Exit Sub
+
 ErrorText:
-If Err.Number <> 0 Then
-    SeeText (SubName)
-    End If
-    Resume Next
+If Err.Number <> 0 Then SeeText (SubName)
+Resume Next
 End Sub
