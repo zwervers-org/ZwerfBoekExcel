@@ -108,6 +108,59 @@ Resume Next
 
 End Function
 
+Function CheckNwInput(ActSht As String) As Boolean
+
+SubName = "'CheckNwInput'"
+If View("Errr") = True Then On Error GoTo ErrorText:
+Application.ScreenUpdating = View("Updte")
+Application.DisplayAlerts = View("Alrt")
+
+Error.DebugTekst Tekst:="Start input:" & vbNewLine _
+                    & "ActiveRow: " & ActiveRow, _
+                        FunctionName:=SubName
+'----Start
+
+1 'nieuwe toevoeging opslaan om later toe te wijzen
+With Sheets(ActSht)
+    'Check of er nieuwe input is gegeven
+    MaxRw = 104586
+    cEnd = .Range("C" & MaxRw).End(xlUp).Row
+    dEnd = .Range("D" & MaxRw).End(xlUp).Row
+    SearchEnd = .Range("B3").End(xlDown).Row
+    NrEnd = .Range("A3").End(xlDown).Row
+    
+    MaxEnd = WorksheetFunction.Max(cEnd, dEnd, SearchEnd, NrEnd)
+    
+    Select Case MaxEnd
+        Case SearchEnd, NrEnd
+            Error.DebugTekst Tekst:="No new input > SearchEnd or NrEnd are max value"
+            CheckNwInputOut = True
+            GoTo EindeFunctie
+        Case cEnd, dEnd
+            For i = NrEnd + 1 To WorksheetFunction.Max(cEnd, dEnd)
+                NieuweInput.NwDebNr (i)
+            Next
+            CheckNwInputOut = True
+            GoTo EindeFunctie
+        Case Else
+            Error.DebugTekst Tekst:="MaxEnd gives error"
+            CheckNwDebOut = False
+            GoTo EindeFunctie
+    End Select
+End With
+
+'--------End Function
+EindeFunctie:
+Error.DebugTekst Tekst:="Finish with " & CheckNwInputOut, FunctionName:=SubName
+CheckNwInput = CheckNwInputOut
+Exit Function
+
+ErrorText:
+If Err.Number <> 0 Then SeeText (SubName)
+Resume Next
+
+End Function
+
 Sub NieuwArt()
 
 SubName = "'NieuwArt'"

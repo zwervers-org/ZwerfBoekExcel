@@ -292,8 +292,12 @@ With Application.FileDialog(msoFileDialogOpen)
     If .Show <> -1 Then End
     
     GetFileOut = .SelectedItems(1)
+    Error.DebugTekst "Selected File: " & GetFileOut
+    Error.DebugTekst "Application map: " & Application.ActiveWorkbook.path
     If InStr(GetFileOut, Application.ActiveWorkbook.path) Then _
-        GetFileOut = Mid(GetFileOut, Application.ActiveWorkbook.path - 1, Len(GetFileOut) - Len(Application.ActiveWorkbook.path))
+        GetFileOut = Mid(GetFileOut, Len(Application.ActiveWorkbook.path) + 1, Len(GetFileOut) - Len(Application.ActiveWorkbook.path))
+    
+    Error.DebugTekst "Get File: " & GetFileOut
 
 End With
 
@@ -318,7 +322,7 @@ If Err.Number <> 0 Then SeeText (SubName)
     
 End Function
 
-Function InsertPictureInRange(PictureFileName As String, TargetCells As Range, TargetSheet As Worksheet)
+Function InsertPictureInRange(PictureFileName As String, TargetCells As Range, TargetSheet As Worksheet) As Boolean
 
 SubName = "'InsertPictureInRange'"
 If View("Errr") = True Then On Error GoTo ErrorText:
@@ -327,9 +331,9 @@ Application.ScreenUpdating = View("Updte")
 Application.DisplayAlerts = View("Alrt")
 
 Error.DebugTekst Tekst:="Start input: " & vbNewLine _
-                        & "PictureFileName: " & PictureFileName & vbNewLine _
-                        & "TargetCells: " & TargetCells.Address & vbNewLine _
-                        & "TargetSheet: " & TargetSheet.Name & vbNewLine, _
+                        & "--- PictureFileName: " & PictureFileName & vbNewLine _
+                        & "--- TargetCells: " & TargetCells.Address & vbNewLine _
+                        & "--- TargetSheet: " & TargetSheet.Name & vbNewLine, _
                         FunctionName:=SubName
 '----Start
 
@@ -345,7 +349,7 @@ If ActiveSheet.Name <> TargetSheet.Name Then Exit Function
 
 If Left(PictureFileName, 1) = "\" Then PictureFileName = Application.ActiveWorkbook.path & PictureFileName
 If Dir(PictureFileName) = "" Then Exit Function
-
+Error.DebugTekst "PictureFileName = " & PictureFileName
 10
     ' import picture
 Set p = TargetSheet.Pictures.Insert(PictureFileName)
@@ -386,6 +390,8 @@ End If
 If ScalePicW Then
     MsgBox "De afbeelding mag niet langer zijn dan 88,5cm."
     Sheets("Basisgeg.").Range("C26").ClearContents
+    InsertPictureInRange = False
+    Exit Function
 End If
 
 60
@@ -404,7 +410,7 @@ Admin.NietBewerkbaar (TargetSheet.Name)
 
 '---Finish
 Error.DebugTekst Tekst:="Finish", FunctionName:=SubName
-    
+InsertPictureInRange = True
 Exit Function
 
 ErrorText:
@@ -544,7 +550,7 @@ Exit Function
 
 End Function
 
-Function TestFolderExist(FolderPath) As Boolean
+Function TestFolderExist(FolderPath As String) As Boolean
 
 SubName = "'TestFolderExist'"
 If View("Errr") = True Then On Error GoTo ErrorText:

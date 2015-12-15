@@ -5,7 +5,7 @@ TempFolder = Environ("Temp")
 ErrorFile = "ErrorLog-Boekhoud-v1-1_" & Format(Now(), "ddmmyy") & ".txt"
 LogFileNameOut = TempFolder & "\" & ErrorFile
 
-Debug.Print "----" & vbNewLine & "LogFileName: " & LogFileNameOut & vbNewLine & "----"
+'Debug.Print "----" & vbNewLine & "LogFileName: " & LogFileNameOut & vbNewLine & "----"
 LogFileName = LogFileNameOut
 
 End Function
@@ -154,49 +154,48 @@ End Function
 
 Function SeeText(SubName As String)
 
-'save all Error information, otherwise they will be ereased
-ErrNr = Err.Number
-Source = Err.Source
-ErrLine = Erl
-Descr = Err.Description
-
-Error.DebugTekst Tekst:="Start", FunctionName:="SeeText - Failure message"
-
 Dim Msg As String
 Dim Counter As Integer
 Dim versie As String
 Dim TitleKlm, OutputKlm As String
 Dim StartRow As Integer
 Dim ErrorShtName As String
+Dim ErrNumber, ErrLine As Integer
+Dim ErrSource, ErrDescription As String
+
+'first add the error information in a variable otherwise they are gone
+ErrNumber = Err.Number
+ErrSource = Err.Source
+ErrLine = Erl
+ErrDescription = Err.Description
+
+1
+    Msg = "Error # " & Str(ErrNumber) & Chr(13) _
+            & SubName & " genarated a error." & Chr(13) _
+            & "Source: " & ErrSource & Chr(13) _
+            & "Error Line: " & ErrLine & Chr(13) _
+            & "Description: " & ErrDescription
     
 TitleKlm = "N"
 OutputKlm = "O"
 StartRow = 4
 ErrorShtName = "Basisgeg."
 
-1
-    Msg = "Error # " & Str(ErrNr) & Chr(13) _
-            & SubName & " genarated a error." & Chr(13) _
-            & "Source: " & Source & Chr(13) _
-            & "Error Line: " & ErrLine & Chr(13) _
-            & "Description: " & Descr
-        Error.DebugTekst (Msg)
-        
+    'Error.DebugTekst (Msg)
 10    'notice the error in the "Bugfix indicator"
     ActiveSht = ActiveSheet.Name
     
     If ActiveSht <> ErrorShtName Then Admin.ShowOneSheet (ErrorShtName)
     If ActiveSheet.Name <> ErrorShtName Then
-        Error.DebugTekst Tekst:="Basisgeg. can't get active. End Error saving", FunctionName:="SeeText"
+        Error.DebugTekst Tekst:=ErrorShtName & " can't get active. End Error saving", FunctionName:="SeeText"
         Exit Function
     End If
     If Admin.Bewerkbaar(ErrorShtName) = False Then
-        Error.DebugTekst Tekst:="Basisgeg. stays protected. End Error saving", FunctionName:="SeeText"
+        Error.DebugTekst Tekst:=ErrorShtName & " stays protected. End Error saving", FunctionName:="SeeText"
         Exit Function
     End If
     
     With Sheets(ErrorShtName)
-        If .Range(OutputKlm & StartRow + 1).Value > 100 Then End 'Wanneer er een fout loop ontstaat stoppen bij 100 fouten
         versie = .Range(OutputKlm & StartRow).Value
         Counter = .Range(OutputKlm & StartRow + 1).Value
         If .Range(OutputKlm & StartRow + 1).Value = "" Then
@@ -204,25 +203,26 @@ ErrorShtName = "Basisgeg."
             .Range(OutputKlm & StartRow + 1).Value = Counter
             .Range(OutputKlm & StartRow + 2).Value = SubName
             .Range(OutputKlm & StartRow + 3).Value = ErrLine
-            .Range(OutputKlm & StartRow + 4).Value = ErrNr
-            .Range(OutputKlm & StartRow + 5).Value = Source
-            .Range(OutputKlm & StartRow + 6).Value = Descr
+            .Range(OutputKlm & StartRow + 4).Value = ErrNumber
+            .Range(OutputKlm & StartRow + 5).Value = ErrSource
+            .Range(OutputKlm & StartRow + 6).Value = ErrDescription
             Error.DebugTekst "New error in Bugfix indicator"
             
 11      ElseIf .Range(OutputKlm & StartRow + 1).Value > 0 Then
             If SubName = "'" & .Range(OutputKlm & StartRow + 2).Value And _
                 ErrLine = .Range(OutputKlm & StartRow + 3).Value And _
-                ErrNr = .Range(OutputKlm & StartRow + 4).Value And _
-                Source = .Range(OutputKlm & StartRow + 5).Value Then
+                ErrNumber = .Range(OutputKlm & StartRow + 4).Value And _
+                ErrSource = .Range(OutputKlm & StartRow + 5).Value Then
                     .Range(OutputKlm & StartRow + 1).Value = Counter + 1
+                    If .Range(OutputKlm & StartRow + 1).Value > 100 Then End
 12          Else
                 Counter = 1
                 .Range(OutputKlm & StartRow + 1).Value = Counter
                 .Range(OutputKlm & StartRow + 2).Value = SubName
                 .Range(OutputKlm & StartRow + 3).Value = ErrLine
-                .Range(OutputKlm & StartRow + 4).Value = ErrNr
-                .Range(OutputKlm & StartRow + 5).Value = Source
-                .Range(OutputKlm & StartRow + 6).Value = Descr
+                .Range(OutputKlm & StartRow + 4).Value = ErrNumber
+                .Range(OutputKlm & StartRow + 5).Value = ErrSource
+                .Range(OutputKlm & StartRow + 6).Value = ErrDescription
                 Error.DebugTekst "Delete previous and add new error in Bugfix indicator"
             End If
         End If
@@ -233,17 +233,17 @@ ErrorShtName = "Basisgeg."
                         & "->Counter: " & Counter & vbNewLine _
                         & "->SubName: " & SubName & vbNewLine _
                         & "->ErrLine: " & ErrLine & vbNewLine _
-                        & "->Err.Number: " & ErrNr & vbNewLine _
-                        & "->Err.Source: " & Source & vbNewLine _
-                        & "->Err.Description: " & Descr, _
+                        & "->ErrNumber: " & ErrNumber & vbNewLine _
+                        & "->ErrSource: " & ErrSource & vbNewLine _
+                        & "->ErrDescription: " & ErrDescription, _
                         FunctionName:="SeeText"
     
 15 'back to the sheet were the error is indicated
-    If ActiveSht <> ErrorShtName Then Admin.ShowOneSheet (ActiveSht)
     If Admin.NietBewerkbaar(ErrorShtName) = False Then
         Error.DebugTekst Tekst:="Basisgeg. can't be protected. End Error saving", FunctionName:="SeeText"
         Exit Function
     End If
+    If ActiveSht <> ErrorShtName Then Admin.ShowOneSheet (ActiveSht)
         
 20  'Send an email to the opporator/bugfix-er
     Error.SendError Counter, SubName, Msg, versie
@@ -336,8 +336,13 @@ End If
 If IsEmpty(AutoText) Or AutoText = False Then _
     If FunctionName <> "" Then Tekst = FunctionName & ">" & Tekst
 
-Debug.Print "--" & Format(Now(), "dd-mm-yyyy hh:mm.ss") & vbNewLine & Tekst ' write to immediate
-Print #n, vbNewLine & "----" & Format(Now(), "dd-mm-yyyy hh:mm.ss") & vbNewLine & Tekst ' write to file
+If FunctionName = "" Then
+    Debug.Print Tekst ' write to immediate
+    Print #n, vbNewLine & Tekst ' write to file
+Else
+    Debug.Print "--" & Format(Now(), "dd-mm-yyyy hh:mm.ss") & vbNewLine & Tekst ' write to immediate
+    Print #n, vbNewLine & "----" & Format(Now(), "dd-mm-yyyy hh:mm.ss") & vbNewLine & Tekst ' write to file
+End If
 
 Close #n
 

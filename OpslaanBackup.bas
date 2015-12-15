@@ -98,12 +98,9 @@ If IsEmpty(Sheets("Basisgeg.").Range("C25")) Then
     FilePath = BackgroundFunction.GetFolder(PathNow, "PDF")
 Else
     FilePath = Sheets("Basisgeg.").Range("C25").Value
-    
-    If Left(FilePath, 1) = "\" Then FilePath = PathNow & FilePath
-    
     If BackgroundFunction.TestFolderExist(FilePath) = False Then FilePath = BackgroundFunction.GetFolder(PathNow, "PDF")
     
-    
+    If Left(FilePath, 1) = "\" Then FilePath = PathNow & FilePath
 End If
 
 'Vind achternaam voor de PDF bestandsnaam
@@ -132,18 +129,14 @@ Admin.ShowOneSheet ("Factuur")
 With Sheets("Factuur")
     .Range("B1", "K50").Select
     
-    'ChDir (FilePath)
-    If BackgroundFunction.TestFolderExist(FilePath) Then
-        ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, FileName:= _
-            FilePath & "\" & FileName & ".pdf" _
-            , Quality:=xlQualityStandard, IncludeDocProperties:=True, IgnorePrintAreas _
-            :=False, OpenAfterPublish:=False
+    ChDir (FilePath)
         
-        .Range("B1").Select
-    Else
-        SavePDF = "FALSE, FILE NOT SAVED. ERROR LINE 50 - IF STATEMENT"
-        Exit Function
-    End If
+    ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, FileName:= _
+        FilePath & "\" & FileName & ".pdf" _
+        , Quality:=xlQualityStandard, IncludeDocProperties:=True, IgnorePrintAreas _
+        :=False, OpenAfterPublish:=False
+    
+    .Range("B1").Select
 End With
 
 SavePDF = FilePath & "\" & FileName & ".pdf"
@@ -194,6 +187,7 @@ If FilePath = "" Then End 'wanneer er geen pad is geselecteerd
 DateNow = Format(Now, "ddMMMyyyy-hhmm")
 
 If Right(FilePath, 1) <> "\" Then FilePath = FilePath & "\"
+
 ActiveWorkbook.SaveCopyAs (FilePath & DateNow & "-backup.xlsm")
 
 ActiveSht = ActiveSheet.Name

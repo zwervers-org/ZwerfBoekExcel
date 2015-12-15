@@ -15,7 +15,7 @@ Sheets(ActSht).Select
 End Sub
 Sub ShowOneSheet(Sht As String)
 
-Error.DebugTekst Tekst:="ShowOneSheet > " & Sht
+Error.DebugTekst Tekst:="Start ShowOneSheet > " & Sht
 
 ActSht = ActiveSheet.Name
 
@@ -31,7 +31,11 @@ If BackgroundFunction.InArray("Modus", Sheets("Basisgeg.").Range("O1").Value) = 
             Sheets(i).Visible = xlSheetHidden
         End If
     Next i
+Else
+    Sheets(Sht).Select
 End If
+
+Error.DebugTekst Tekst:="Finish Activesheet = " & ActiveSheet.Name
 
 End Sub
 
@@ -63,8 +67,7 @@ Error.DebugTekst Tekst:="Start ActivateWorkModus"
 
 For i = 1 To Sheets.count
     Admin.Bewerkbaar (Sheets(i).Name)
-    
-    Admin.ShowOneSheet (Sheets(i).Name)
+
     If BackgroundFunction.InArray("Database", Sheets(i).Name) = False Then _
         ActiveWindow.DisplayGridlines = False 'Rasterlijnen
     
@@ -74,32 +77,42 @@ For i = 1 To Sheets.count
                 .Range("O1").Value = "Work modus"
                 .ScrollArea = "A1:H100"
                 .Range("N:Q").EntireColumn.Hidden = True
+                .Protect Contents = True, Userinterfaceonly = True
             Case "Boekingslijst"
                 .ScrollArea = "A1:P10000"
                 .Range("Q:BO").EntireColumn.Hidden = True
+                .Protect Contents = True, Userinterfaceonly = True
             Case "Factuurlijst"
                 '.ScrollArea = "A1:CE10000"
             Case "Factuur invoer"
                 .ScrollArea = "A1:P39"
                 .Range("B:B,J:J,L:L,S:V").EntireColumn.Hidden = True
                 .Range("A40:A44").EntireRow.Hidden = True
+                .Protect Contents = True, Userinterfaceonly = True
             Case "Factuur"
                 .ScrollArea = "A1:S53"
+                .Protect Contents = True, AllowFormattingCells = True, Userinterfaceonly = True
             Case "Artikelen"
                 .ScrollArea = "A1:G10000"
+                .Protect Contents = True, Userinterfaceonly = True
             Case "Debiteuren"
                 .ScrollArea = "A1:K10000"
                 '.Range("A:B").EntireColumn.Hidden = True
                 .Range("B:B").EntireColumn.Hidden = True
                 .Range("3:3").EntireRow.Hidden = True
+                .Protect Contents = True, Userinterfaceonly = True
             Case "Maandoverzicht"
                 .ScrollArea = "A1:M23"
+                .Protect Contents = True, Userinterfaceonly = True
             Case "Kwartaaloverzicht"
                 .ScrollArea = "A1:M23"
+                .Protect Contents = True, Userinterfaceonly = True
             Case "Jaaroverzicht"
                 .ScrollArea = "A1:M32"
+                .Protect Contents = True, Userinterfaceonly = True
             Case "Afdruk boekingen"
                 .ScrollArea = "A1:O10000"
+                .Protect Contents = True, Userinterfaceonly = True
         End Select
     End With
     
@@ -145,7 +158,6 @@ Error.DebugTekst Tekst:="Start DeActivateWorkModus"
 For i = 1 To Sheets.count
     Admin.Bewerkbaar (Sheets(i).Name)
     
-    Admin.ShowOneSheet (Sheets(i).Name)
     With ActiveWindow
         .DisplayGridlines = True 'Rasterlijnen
         .DisplayHeadings = True 'Kolom en rij koppen
@@ -154,13 +166,11 @@ For i = 1 To Sheets.count
         .DisplayVerticalScrollBar = True
     End With
     
-    Admin.Bewerkbaar (Sheets(i).Name)
     With Sheets(Sheets(i).Name)
         .ScrollArea = ""
         .Cells.EntireColumn.Hidden = False
         .Cells.EntireRow.Hidden = False
     End With
-    
 Next i
 
 With Application
@@ -169,20 +179,20 @@ With Application
     .DisplayFormulaBar = True
 End With
 
-Admin.ShowAllSheets
-
 Beveiliging = MsgBox("Schrijfbeveiliging op de bladen aan zetten?", vbYesNo, "Schrijfbeveiliging?")
 If Beveiliging = vbYes Then
-    Sheets("Basisgeg.").Select
+    Admin.ShowOneSheet ("Basisgeg.")
     Sheets("Basisgeg.").Range("O1").Value = "Test modus beveiligd"
     
     For i = 1 To Sheets.count
         Admin.NietBewerkbaar (Sheets(i).Name)
     Next i
 Else
-    Sheets("Basisgeg.").Select
+    Admin.ShowOneSheet ("Basisgeg.")
     Sheets("Basisgeg.").Range("O1").Value = "Test modus"
 End If
+
+Admin.ShowAllSheets
 
 Error.DebugTekst Tekst:="Finish ActivateWorkModus"
 
@@ -294,18 +304,15 @@ Error.DebugTekst Tekst:="Afsluiten > Execute"
 ActiveSht = ActiveSheet.Name
 
 If ActiveSht <> "Basisgeg." Then Admin.ShowOneSheet ("Basisgeg.")
-    BackupDate = Sheets("Basisgeg.").Range("O11").Value
+    BackupDate = Sheets("Basisgeg.").Range("O10").Value
     If BackupDate > Format(Now + 30, "ddMMMyyyy-hhmm") Then OpslaanBackup.Backup
-    
-    'Verwijder fout debugger counter zodat fouten geregistreerd blijven
-    If Sheets("Basisgeg.").Range("O5").Value > 100 Then
-        Admin.Bewerkbaar ("Basisgeg.")
-        Sheets("Basisgeg.").Range("O5").ClearContents
-        Admin.NietBewerkbaar ("Basisgeg.")
-    End If
 If ActiveSht <> "Basisgeg." Then Admin.ShowOneSheet (ActiveSht)
 
-
+If Sheets("Basisgeg.").Range("O5").Value > 100 Then
+    Admin.Bewerkbaar ("Basisgeg.")
+    Sheets("Basisgeg.").Range("O5").ClearContents
+    Admin.NietBewerkbaar ("Basisgeg.")
+End If
 
 With ThisWorkbook
     .Save
@@ -341,17 +348,17 @@ Error.DebugTekst Tekst:="Start", FunctionName:=SubName
     Dim directory As String
     Dim extension As String
     Dim fso As Object
-5
+    
     'dirStart = ActiveWorkbook.path
     dirStart = "C:\Users\Gebruiker\Documents\GitHub\ZwerfBoekExcel" 'starting directory
     directory = "\" 'new directories for the vba-scripts
-    fName = "Boekhoud-v1-1.xlsm" 'this filename
+    fName = "boekhoud-v1-2.xlsm" 'this filename
     'path = dirStart & directory
-10
+    
     Set fso = CreateObject("scripting.filesystemobject")
     count = 0
     skiped = 0
-20
+    
     If Not fso.FolderExists(dirStart & directory) Then
         'when directory does not exists, make path
         newDir = dirStart
@@ -369,7 +376,7 @@ Error.DebugTekst Tekst:="Start", FunctionName:=SubName
     Set fso = Nothing
     'Check if the right workbook is active
     If ActiveWorkbook.Name <> fName Then Workbooks(fName).Activate
-30
+    
     For Each VBComponent In ActiveWorkbook.VBProject.VBComponents
         Select Case VBComponent.Type
             Case ClassModule, Document
@@ -382,7 +389,7 @@ Error.DebugTekst Tekst:="Start", FunctionName:=SubName
                 extension = ".txt"
         End Select
             
-40
+                
         On Error Resume Next
         Err.Clear
         
@@ -392,7 +399,7 @@ Error.DebugTekst Tekst:="Start", FunctionName:=SubName
             skiped = skiped + 1
             GoTo Volgende
         End If
-50
+        
         If count = 0 Then directory = dirStart & directory
         path = directory & "\" & VBComponent.Name & extension
         VBComponent.Export (path)
@@ -410,7 +417,7 @@ Error.DebugTekst Tekst:="Start", FunctionName:=SubName
             count = count + 1
             Debug.Print "Exported " & Left$(VBComponent.Name & ":" & Space(Padding), Padding) & path
         End If
-60
+        
 Volgende:
         On Error GoTo ErrorText
     Next

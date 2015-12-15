@@ -117,7 +117,6 @@ Error.DebugTekst Tekst:="Start", _
 
 'Controleer factuurnr berekening
 1    Admin.ShowOneSheet ("Factuur invoer")
-    Admin.Bewerkbaar ("Factuur invoer")
     With Sheets("Factuur invoer")
         FactuurNummer = .Range("H2").Value
         Volgnummer = .Range("V9").Value
